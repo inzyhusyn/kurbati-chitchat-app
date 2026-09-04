@@ -191,18 +191,18 @@ function HomeFeed() {
           >
             <div className="relative">
               <div
-                className={`grid h-16 w-16 place-items-center rounded-full p-[2px] ${
+                className={`h-16 w-16 overflow-hidden rounded-[18px] p-[2px] ${
                   story.you ? "bg-muted" : "story-ring"
                 }`}
               >
                 <img
                   src={story.img}
                   alt={story.name}
-                  className="h-full w-full rounded-full border-2 border-black object-cover"
+                  className="h-full w-full rounded-[16px] border-2 border-black object-cover"
                 />
               </div>
               {story.you && (
-                <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full border-2 border-black bg-primary text-primary-foreground">
+                <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-[7px] border-2 border-black bg-white text-black">
                   <Plus className="h-3 w-3" />
                 </span>
               )}
