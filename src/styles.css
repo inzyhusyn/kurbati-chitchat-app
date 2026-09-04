@@ -189,3 +189,42 @@
   }
 }
 
+
+@layer utilities {
+  .sheet-in {
+    animation: sheetin 0.28s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+  .fade-in {
+    animation: fadein 0.2s ease-out;
+  }
+  .story-progress {
+    animation: storyprogress linear forwards;
+  }
+}
+
+@keyframes sheetin {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadein {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes storyprogress {
+  from {
+    width: 0%;
+  }
+  to {
+    width: 100%;
+  }
+}
