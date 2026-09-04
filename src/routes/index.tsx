@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   Home,
   Search,
@@ -41,35 +41,52 @@ type Tab = "home" | "search" | "reels" | "chat" | "profile";
 
 function Index() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const lastScroll = useRef(0);
+
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const y = e.currentTarget.scrollTop;
+    const prev = lastScroll.current;
+    if (y > prev && y > 48) setHeaderHidden(true);
+    else if (y < prev - 4 || y <= 8) setHeaderHidden(false);
+    lastScroll.current = y;
+  };
 
   return (
     <div className="flex min-h-screen justify-center bg-background font-sans text-foreground">
       {/* Mobile Frame */}
       <div className="relative flex h-screen w-full max-w-md flex-col overflow-hidden border-x border-border bg-black">
-        {/* TOP HEADER */}
-        <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-[#000000] px-4 py-3">
+        {/* TOP HEADER — auto-hides on scroll down */}
+        <header
+          className={`absolute inset-x-0 top-0 z-50 flex items-center justify-between border-b border-border bg-[#000000] px-4 py-2.5 transition-transform duration-300 ${
+            headerHidden ? "-translate-y-full" : "translate-y-0"
+          }`}
+        >
           <h1 className="flex items-center">
             <img
               src={brandLogo}
               alt="Kurbati Chitchat"
-              className="h-7 w-auto select-none"
+              className="h-10 w-auto select-none"
               draggable={false}
             />
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
             <Heart className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
             <button
               type="button"
               aria-label="Open messages"
               onClick={() => setActiveTab("chat")}
             >
-              <MessageCircle className="h-6 w-6 cursor-pointer transition hover:scale-110 hover:text-white" />
+              <MessageCircle className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
             </button>
           </div>
         </header>
 
         {/* MAIN DYNAMIC CONTENT AREA */}
-        <main className="no-scrollbar flex-1 overflow-y-auto pb-20">
+        <main
+          onScroll={handleScroll}
+          className="no-scrollbar flex-1 overflow-y-auto pb-20 pt-[60px]"
+        >
           {activeTab === "home" && <HomeFeed />}
           {activeTab === "search" && <ExplorePage />}
           {activeTab === "reels" && <ReelsPage />}
@@ -94,11 +111,11 @@ function Index() {
             <Search className="h-6 w-6" />
           </NavButton>
 
-          {/* Center create button */}
+          {/* Center create button — squarish with rounded corners */}
           <button
             type="button"
             aria-label="Create new post"
-            className="grid h-9 w-9 place-items-center rounded-xl border border-primary bg-primary/10 text-primary transition hover:bg-primary hover:text-primary-foreground"
+            className="grid h-9 w-9 place-items-center rounded-[10px] border border-white/70 bg-white/10 text-white transition hover:bg-white hover:text-black"
           >
             <Plus className="h-5 w-5" />
           </button>
@@ -123,6 +140,7 @@ function Index() {
   );
 }
 
+
 function NavButton({
   children,
   active,
@@ -141,7 +159,7 @@ function NavButton({
       aria-current={active ? "page" : undefined}
       onClick={onClick}
       className={`cursor-pointer transition active:scale-90 ${
-        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        active ? "text-white" : "text-muted-foreground hover:text-foreground"
       }`}
     >
       {children}
@@ -173,18 +191,18 @@ function HomeFeed() {
           >
             <div className="relative">
               <div
-                className={`grid h-16 w-16 place-items-center rounded-full p-[2px] ${
+                className={`h-16 w-16 overflow-hidden rounded-[18px] p-[2px] ${
                   story.you ? "bg-muted" : "story-ring"
                 }`}
               >
                 <img
                   src={story.img}
                   alt={story.name}
-                  className="h-full w-full rounded-full border-2 border-black object-cover"
+                  className="h-full w-full rounded-[16px] border-2 border-black object-cover"
                 />
               </div>
               {story.you && (
-                <span className="absolute bottom-0 right-0 grid h-5 w-5 place-items-center rounded-full border-2 border-black bg-primary text-primary-foreground">
+                <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-[7px] border-2 border-black bg-white text-black">
                   <Plus className="h-3 w-3" />
                 </span>
               )}
@@ -258,6 +276,7 @@ function PostCard({ post }: { post: Post }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [popping, setPopping] = useState(false);
+  const [burstKey, setBurstKey] = useState(0);
 
   const likeCount = post.likes + (liked ? 1 : 0);
 
@@ -269,15 +288,25 @@ function PostCard({ post }: { post: Post }) {
     }
   };
 
+  // Double-tap only ever likes — never unlikes.
+  const doubleTapLike = () => {
+    setBurstKey((k) => k + 1);
+    if (!liked) {
+      setLiked(true);
+      setPopping(true);
+      window.setTimeout(() => setPopping(false), 320);
+    }
+  };
+
   return (
     <article className="border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="story-ring grid h-9 w-9 place-items-center rounded-full p-[2px]">
+          <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
             <img
               src={post.avatar}
               alt={post.user}
-              className="h-full w-full rounded-full border-2 border-black object-cover"
+              className="h-full w-full rounded-[9px] border-2 border-black object-cover"
             />
           </div>
           <div className="leading-tight">
@@ -293,8 +322,8 @@ function PostCard({ post }: { post: Post }) {
       <button
         type="button"
         aria-label={`Like ${post.user}'s post`}
-        onDoubleClick={toggleLike}
-        className="block h-96 w-full bg-muted"
+        onDoubleClick={doubleTapLike}
+        className="relative block h-96 w-full overflow-hidden bg-muted"
       >
         <img
           src={post.img}
@@ -302,7 +331,16 @@ function PostCard({ post }: { post: Post }) {
           className="h-full w-full object-cover"
           loading="lazy"
         />
+        {burstKey > 0 && (
+          <span
+            key={burstKey}
+            className="pointer-events-none absolute inset-0 grid place-items-center"
+          >
+            <Heart className="heart-burst h-24 w-24 fill-white text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)]" />
+          </span>
+        )}
       </button>
+
 
       <div className="px-4 py-3">
         <div className="mb-2 flex items-center justify-between">
@@ -449,11 +487,11 @@ function ReelsPage() {
 
             <div className="absolute bottom-6 left-4 z-10 pr-16">
               <div className="mb-2 flex items-center gap-2">
-                <div className="story-ring grid h-9 w-9 place-items-center rounded-full p-[2px]">
+                <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
                   <img
                     src={`https://i.pravatar.cc/80?u=${reel.handle}`}
                     alt={reel.handle}
-                    className="h-full w-full rounded-full border-2 border-black object-cover"
+                    className="h-full w-full rounded-[9px] border-2 border-black object-cover"
                   />
                 </div>
                 <h3 className="text-base font-semibold text-white">{reel.handle}</h3>
@@ -488,11 +526,11 @@ function ChatPage() {
         >
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-muted font-bold text-primary">
+              <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-muted font-bold text-white">
                 {chat.name[0]}
               </div>
               {chat.online && (
-                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-black bg-emerald-500" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-[4px] border-2 border-black bg-emerald-500" />
               )}
             </div>
             <div className="leading-tight">
@@ -519,7 +557,7 @@ function ProfilePage() {
   return (
     <div className="flex flex-col p-4">
       <div className="mb-4 flex items-center justify-between">
-        <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-primary bg-muted">
+        <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
           <img
             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80"
             alt="Profile"
