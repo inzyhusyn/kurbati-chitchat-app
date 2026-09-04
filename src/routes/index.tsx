@@ -487,11 +487,11 @@ function ReelsPage() {
 
             <div className="absolute bottom-6 left-4 z-10 pr-16">
               <div className="mb-2 flex items-center gap-2">
-                <div className="story-ring grid h-9 w-9 place-items-center rounded-full p-[2px]">
+                <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
                   <img
                     src={`https://i.pravatar.cc/80?u=${reel.handle}`}
                     alt={reel.handle}
-                    className="h-full w-full rounded-full border-2 border-black object-cover"
+                    className="h-full w-full rounded-[9px] border-2 border-black object-cover"
                   />
                 </div>
                 <h3 className="text-base font-semibold text-white">{reel.handle}</h3>
@@ -526,11 +526,11 @@ function ChatPage() {
         >
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="grid h-12 w-12 place-items-center rounded-full bg-muted font-bold text-primary">
+              <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-muted font-bold text-white">
                 {chat.name[0]}
               </div>
               {chat.online && (
-                <span className="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-black bg-emerald-500" />
+                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-[4px] border-2 border-black bg-emerald-500" />
               )}
             </div>
             <div className="leading-tight">
@@ -557,7 +557,7 @@ function ProfilePage() {
   return (
     <div className="flex flex-col p-4">
       <div className="mb-4 flex items-center justify-between">
-        <div className="h-20 w-20 overflow-hidden rounded-full border-2 border-primary bg-muted">
+        <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
           <img
             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80"
             alt="Profile"
