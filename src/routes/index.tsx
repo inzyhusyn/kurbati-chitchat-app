@@ -183,7 +183,7 @@ function HomeFeed() {
                 </span>
               )}
             </div>
-            <span className="mt-1 max-w-[64px] truncate text-xs text-muted-foreground">
+            <span className="mt-1 max-w-[64px] truncate text-xs text-foreground/70">
               {story.name}
             </span>
           </div>
