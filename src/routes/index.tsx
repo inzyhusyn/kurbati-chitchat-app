@@ -276,6 +276,7 @@ function PostCard({ post }: { post: Post }) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [popping, setPopping] = useState(false);
+  const [burstKey, setBurstKey] = useState(0);
 
   const likeCount = post.likes + (liked ? 1 : 0);
 
@@ -287,15 +288,25 @@ function PostCard({ post }: { post: Post }) {
     }
   };
 
+  // Double-tap only ever likes — never unlikes.
+  const doubleTapLike = () => {
+    setBurstKey((k) => k + 1);
+    if (!liked) {
+      setLiked(true);
+      setPopping(true);
+      window.setTimeout(() => setPopping(false), 320);
+    }
+  };
+
   return (
     <article className="border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
         <div className="flex items-center gap-3">
-          <div className="story-ring grid h-9 w-9 place-items-center rounded-full p-[2px]">
+          <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
             <img
               src={post.avatar}
               alt={post.user}
-              className="h-full w-full rounded-full border-2 border-black object-cover"
+              className="h-full w-full rounded-[9px] border-2 border-black object-cover"
             />
           </div>
           <div className="leading-tight">
@@ -311,8 +322,8 @@ function PostCard({ post }: { post: Post }) {
       <button
         type="button"
         aria-label={`Like ${post.user}'s post`}
-        onDoubleClick={toggleLike}
-        className="block h-96 w-full bg-muted"
+        onDoubleClick={doubleTapLike}
+        className="relative block h-96 w-full overflow-hidden bg-muted"
       >
         <img
           src={post.img}
@@ -320,7 +331,16 @@ function PostCard({ post }: { post: Post }) {
           className="h-full w-full object-cover"
           loading="lazy"
         />
+        {burstKey > 0 && (
+          <span
+            key={burstKey}
+            className="pointer-events-none absolute inset-0 grid place-items-center"
+          >
+            <Heart className="heart-burst h-24 w-24 fill-white text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.5)]" />
+          </span>
+        )}
       </button>
+
 
       <div className="px-4 py-3">
         <div className="mb-2 flex items-center justify-between">
