@@ -13,6 +13,7 @@ import {
   Bookmark,
   MoreHorizontal,
 } from "lucide-react";
+import brandLogo from "@/assets/kurbati-logo.png";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -46,18 +47,23 @@ function Index() {
       {/* Mobile Frame */}
       <div className="relative flex h-screen w-full max-w-md flex-col overflow-hidden border-x border-border bg-black">
         {/* TOP HEADER */}
-        <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-black/80 px-4 py-3 backdrop-blur-md">
-          <h1 className="brand-gradient-text text-2xl font-bold italic tracking-wide">
-            Kurbati Chitchat
+        <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-[#000000] px-4 py-3">
+          <h1 className="flex items-center">
+            <img
+              src={brandLogo}
+              alt="Kurbati Chitchat"
+              className="h-7 w-auto select-none"
+              draggable={false}
+            />
           </h1>
           <div className="flex items-center gap-4">
-            <Heart className="h-6 w-6 cursor-pointer text-primary transition hover:scale-110" />
+            <Heart className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
             <button
               type="button"
               aria-label="Open messages"
               onClick={() => setActiveTab("chat")}
             >
-              <MessageCircle className="h-6 w-6 cursor-pointer transition hover:scale-110 hover:text-primary" />
+              <MessageCircle className="h-6 w-6 cursor-pointer transition hover:scale-110 hover:text-white" />
             </button>
           </div>
         </header>
