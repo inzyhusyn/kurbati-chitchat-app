@@ -41,35 +41,52 @@ type Tab = "home" | "search" | "reels" | "chat" | "profile";
 
 function Index() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
+  const [headerHidden, setHeaderHidden] = useState(false);
+  const lastScroll = useRef(0);
+
+  const handleScroll = (e: React.UIEvent<HTMLElement>) => {
+    const y = e.currentTarget.scrollTop;
+    const prev = lastScroll.current;
+    if (y > prev && y > 48) setHeaderHidden(true);
+    else if (y < prev - 4 || y <= 8) setHeaderHidden(false);
+    lastScroll.current = y;
+  };
 
   return (
     <div className="flex min-h-screen justify-center bg-background font-sans text-foreground">
       {/* Mobile Frame */}
       <div className="relative flex h-screen w-full max-w-md flex-col overflow-hidden border-x border-border bg-black">
-        {/* TOP HEADER */}
-        <header className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-[#000000] px-4 py-3">
+        {/* TOP HEADER — auto-hides on scroll down */}
+        <header
+          className={`absolute inset-x-0 top-0 z-50 flex items-center justify-between border-b border-border bg-[#000000] px-4 py-2.5 transition-transform duration-300 ${
+            headerHidden ? "-translate-y-full" : "translate-y-0"
+          }`}
+        >
           <h1 className="flex items-center">
             <img
               src={brandLogo}
               alt="Kurbati Chitchat"
-              className="h-7 w-auto select-none"
+              className="h-10 w-auto select-none"
               draggable={false}
             />
           </h1>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
             <Heart className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
             <button
               type="button"
               aria-label="Open messages"
               onClick={() => setActiveTab("chat")}
             >
-              <MessageCircle className="h-6 w-6 cursor-pointer transition hover:scale-110 hover:text-white" />
+              <MessageCircle className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
             </button>
           </div>
         </header>
 
         {/* MAIN DYNAMIC CONTENT AREA */}
-        <main className="no-scrollbar flex-1 overflow-y-auto pb-20">
+        <main
+          onScroll={handleScroll}
+          className="no-scrollbar flex-1 overflow-y-auto pb-20 pt-[60px]"
+        >
           {activeTab === "home" && <HomeFeed />}
           {activeTab === "search" && <ExplorePage />}
           {activeTab === "reels" && <ReelsPage />}
@@ -94,11 +111,11 @@ function Index() {
             <Search className="h-6 w-6" />
           </NavButton>
 
-          {/* Center create button */}
+          {/* Center create button — squarish with rounded corners */}
           <button
             type="button"
             aria-label="Create new post"
-            className="grid h-9 w-9 place-items-center rounded-xl border border-primary bg-primary/10 text-primary transition hover:bg-primary hover:text-primary-foreground"
+            className="grid h-9 w-9 place-items-center rounded-[10px] border border-white/70 bg-white/10 text-white transition hover:bg-white hover:text-black"
           >
             <Plus className="h-5 w-5" />
           </button>
@@ -122,6 +139,7 @@ function Index() {
     </div>
   );
 }
+
 
 function NavButton({
   children,
