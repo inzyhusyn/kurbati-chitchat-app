@@ -159,7 +159,7 @@ function NavButton({
       aria-current={active ? "page" : undefined}
       onClick={onClick}
       className={`cursor-pointer transition active:scale-90 ${
-        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        active ? "text-white" : "text-muted-foreground hover:text-foreground"
       }`}
     >
       {children}
