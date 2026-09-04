@@ -149,6 +149,10 @@
   .like-pop {
     animation: likepop 0.32s ease-out;
   }
+
+  .heart-burst {
+    animation: heartburst 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+  }
 }
 
 @keyframes likepop {
@@ -162,3 +166,26 @@
     transform: scale(1);
   }
 }
+
+@keyframes heartburst {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  25% {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  75% {
+    opacity: 1;
+    transform: scale(1.05) translateY(-6px);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1) translateY(-28px);
+  }
+}
+
