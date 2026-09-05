@@ -288,18 +288,18 @@ function Toast({ message }: { message: string }) {
 /* 1. HOME FEED                                                      */
 /* ---------------------------------------------------------------- */
 
-type Story = { id: number; name: string; img: string; you?: boolean };
+type Story = { id: number; name: string; username: string; img: string; you?: boolean };
 
 const STORIES: Story[] = [
-  { id: 1, name: "Your Story", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&q=80", you: true },
-  { id: 2, name: "Aarav", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&q=80" },
-  { id: 3, name: "Sanya", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&q=80" },
-  { id: 4, name: "Kabir", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&q=80" },
-  { id: 5, name: "Zoya", img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=160&q=80" },
-  { id: 6, name: "Rey", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=160&q=80" },
+  { id: 1, name: "Your Story", username: "you", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&q=80", you: true },
+  { id: 2, name: "Aarav", username: "aarav_official", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&q=80" },
+  { id: 3, name: "Sanya", username: "sanya.k", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&q=80" },
+  { id: 4, name: "Kabir", username: "kabir.frames", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&q=80" },
+  { id: 5, name: "Zoya", username: "zoya_design", img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=160&q=80" },
+  { id: 6, name: "Rey", username: "rey.moves", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=160&q=80" },
 ];
 
-function HomeFeed() {
+function HomeFeed({ onOpenUser }: { onOpenUser: (username: string) => void }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
 
