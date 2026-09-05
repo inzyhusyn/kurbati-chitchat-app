@@ -54,6 +54,7 @@ function Index() {
   const [activeTab, setActiveTab] = useState<Tab>("home");
   const [headerHidden, setHeaderHidden] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [viewUser, setViewUser] = useState<string | null>(null);
   const lastScroll = useRef(0);
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
@@ -107,9 +108,9 @@ function Index() {
           onScroll={handleScroll}
           className="no-scrollbar flex-1 overflow-y-auto pb-20 pt-[60px]"
         >
-          {activeTab === "home" && <HomeFeed />}
+          {activeTab === "home" && <HomeFeed onOpenUser={setViewUser} />}
           {activeTab === "search" && <ExplorePage />}
-          {activeTab === "reels" && <ReelsPage />}
+          {activeTab === "reels" && <ReelsPage onOpenUser={setViewUser} />}
           {activeTab === "chat" && <ChatPage />}
           {activeTab === "profile" && <ProfilePage />}
         </main>
@@ -158,6 +159,12 @@ function Index() {
 
         {notificationsOpen && (
           <NotificationsSheet onClose={() => setNotificationsOpen(false)} />
+        )}
+        {viewUser && (
+          <UserProfilePage
+            username={viewUser}
+            onClose={() => setViewUser(null)}
+          />
         )}
       </div>
     </div>
