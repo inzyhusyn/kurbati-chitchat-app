@@ -373,6 +373,7 @@ function StoryViewer({
   }, [index, stories.length, onClose]);
 
   const story = stories[index];
+  if (!story) return null;
 
   return (
     <div className="fade-in absolute inset-0 z-[80] flex flex-col bg-black">
