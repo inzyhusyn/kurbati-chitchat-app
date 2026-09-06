@@ -310,47 +310,60 @@ function HomeFeed({ onOpenUser }: { onOpenUser: (username: string) => void }) {
       {/* Stories Bar */}
       <div className="no-scrollbar flex gap-4 overflow-x-auto border-b border-border px-4 py-3">
         {STORIES.map((story) => (
-          <button
-            type="button"
+          <div
             key={story.id}
-            aria-label={story.you ? "Add to your story" : `View ${story.name}'s story`}
-            onClick={() => {
-              if (story.you) setUploadOpen(true);
-              else setViewerIndex(others.findIndex((o) => o.id === story.id));
-            }}
-            className="flex flex-shrink-0 cursor-pointer flex-col items-center active:scale-95"
+            className="flex flex-shrink-0 flex-col items-center"
           >
-            <div className="relative">
-              <div
-                className={`h-16 w-16 overflow-hidden rounded-[18px] p-[2px] ${
-                  story.you ? "bg-muted" : "story-ring"
-                }`}
-              >
-                <img
-                  src={story.img}
-                  alt={story.name}
-                  className="h-full w-full rounded-[16px] border-2 border-black object-cover"
-                />
+            <button
+              type="button"
+              aria-label={story.you ? "Add to your story" : `View ${story.name}'s story`}
+              onClick={() => {
+                if (story.you) setUploadOpen(true);
+                else setViewerIndex(others.findIndex((o) => o.id === story.id));
+              }}
+              className="cursor-pointer active:scale-95"
+            >
+              <div className="relative">
+                <div
+                  className={`h-16 w-16 overflow-hidden rounded-[18px] p-[2px] ${
+                    story.you ? "bg-muted" : "story-ring"
+                  }`}
+                >
+                  <img
+                    src={story.img}
+                    alt={story.name}
+                    className="h-full w-full rounded-[16px] border-2 border-black object-cover"
+                  />
+                </div>
+                {story.you && (
+                  <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-[7px] border-2 border-black bg-white text-black">
+                    <Plus className="h-3 w-3" />
+                  </span>
+                )}
               </div>
-              {story.you && (
-                <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-[7px] border-2 border-black bg-white text-black">
-                  <Plus className="h-3 w-3" />
-                </span>
-              )}
-            </div>
-            <span className="mt-1 max-w-[64px] truncate text-xs text-foreground/70">
+            </button>
+            <button
+              type="button"
+              aria-label={`Open ${story.username}'s profile`}
+              onClick={() => onOpenUser(story.username)}
+              className="mt-1 max-w-[64px] truncate text-xs text-foreground/70 transition hover:text-foreground"
+            >
               {story.name}
-            </span>
-          </button>
+            </button>
+          </div>
         ))}
       </div>
 
-      <HomeFeedPosts />
+      <HomeFeedPosts onOpenUser={onOpenUser} />
 
       {viewerIndex !== null && (
         <StoryViewer
           stories={others}
           startIndex={viewerIndex}
+          onOpenUser={(u) => {
+            setViewerIndex(null);
+            onOpenUser(u);
+          }}
           onClose={() => setViewerIndex(null)}
         />
       )}
