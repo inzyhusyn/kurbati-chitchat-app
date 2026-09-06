@@ -678,7 +678,12 @@ function PostCard({
   return (
     <article className="border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label={`Open ${post.user}'s profile`}
+          onClick={() => onOpenUser(post.user)}
+          className="flex items-center gap-3 text-left transition active:scale-[0.98]"
+        >
           <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
             <img
               src={post.avatar}
@@ -692,7 +697,7 @@ function PostCard({
               <p className="text-xs text-muted-foreground">{post.location}</p>
             )}
           </div>
-        </div>
+        </button>
         <button
           type="button"
           aria-label="Post options"
