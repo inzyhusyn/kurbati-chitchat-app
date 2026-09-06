@@ -766,7 +766,13 @@ function PostCard({
           {formatCount(likeCount)} likes
         </p>
         <p className="text-sm text-foreground/90">
-          <span className="mr-2 font-semibold text-foreground">{post.user}</span>
+          <button
+            type="button"
+            onClick={() => onOpenUser(post.user)}
+            className="mr-2 font-semibold text-foreground hover:underline"
+          >
+            {post.user}
+          </button>
           {post.caption}
         </p>
         <button
@@ -781,6 +787,10 @@ function PostCard({
       {sheet === "comments" && (
         <CommentsSheet
           comments={comments}
+          onOpenUser={(u) => {
+            setSheet(null);
+            onOpenUser(u);
+          }}
           onAdd={(text) =>
             setComments((c) => [
               ...c,
