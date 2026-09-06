@@ -377,10 +377,12 @@ function StoryViewer({
   stories,
   startIndex,
   onClose,
+  onOpenUser,
 }: {
   stories: Story[];
   startIndex: number;
   onClose: () => void;
+  onOpenUser: (username: string) => void;
 }) {
   const [index, setIndex] = useState(startIndex);
 
