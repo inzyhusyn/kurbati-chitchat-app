@@ -1111,14 +1111,21 @@ function ReelsPage({
 
             <div className="absolute bottom-6 left-4 z-10 pr-16">
               <div className="mb-2 flex items-center gap-2">
-                <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
-                  <img
-                    src={`https://i.pravatar.cc/80?u=${reel.handle}`}
-                    alt={reel.handle}
-                    className="h-full w-full rounded-[9px] border-2 border-black object-cover"
-                  />
-                </div>
-                <h3 className="text-base font-semibold text-white">{reel.handle}</h3>
+                <button
+                  type="button"
+                  aria-label={`Open ${reel.handle}'s profile`}
+                  onClick={() => onOpenUser(reel.handle.replace("@", ""))}
+                  className="flex items-center gap-2"
+                >
+                  <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
+                    <img
+                      src={`https://i.pravatar.cc/80?u=${reel.handle}`}
+                      alt={reel.handle}
+                      className="h-full w-full rounded-[9px] border-2 border-black object-cover"
+                    />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">{reel.handle}</h3>
+                </button>
                 <button className="rounded-md border border-white/40 px-2 py-0.5 text-xs font-semibold text-white">
                   Follow
                 </button>
