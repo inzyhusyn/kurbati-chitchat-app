@@ -158,7 +158,13 @@ function Index() {
         </nav>
 
         {notificationsOpen && (
-          <NotificationsSheet onClose={() => setNotificationsOpen(false)} />
+          <NotificationsSheet
+            onOpenUser={(u) => {
+              setNotificationsOpen(false);
+              setViewUser(u);
+            }}
+            onClose={() => setNotificationsOpen(false)}
+          />
         )}
         {viewUser && (
           <UserProfilePage
@@ -310,47 +316,60 @@ function HomeFeed({ onOpenUser }: { onOpenUser: (username: string) => void }) {
       {/* Stories Bar */}
       <div className="no-scrollbar flex gap-4 overflow-x-auto border-b border-border px-4 py-3">
         {STORIES.map((story) => (
-          <button
-            type="button"
+          <div
             key={story.id}
-            aria-label={story.you ? "Add to your story" : `View ${story.name}'s story`}
-            onClick={() => {
-              if (story.you) setUploadOpen(true);
-              else setViewerIndex(others.findIndex((o) => o.id === story.id));
-            }}
-            className="flex flex-shrink-0 cursor-pointer flex-col items-center active:scale-95"
+            className="flex flex-shrink-0 flex-col items-center"
           >
-            <div className="relative">
-              <div
-                className={`h-16 w-16 overflow-hidden rounded-[18px] p-[2px] ${
-                  story.you ? "bg-muted" : "story-ring"
-                }`}
-              >
-                <img
-                  src={story.img}
-                  alt={story.name}
-                  className="h-full w-full rounded-[16px] border-2 border-black object-cover"
-                />
+            <button
+              type="button"
+              aria-label={story.you ? "Add to your story" : `View ${story.name}'s story`}
+              onClick={() => {
+                if (story.you) setUploadOpen(true);
+                else setViewerIndex(others.findIndex((o) => o.id === story.id));
+              }}
+              className="cursor-pointer active:scale-95"
+            >
+              <div className="relative">
+                <div
+                  className={`h-16 w-16 overflow-hidden rounded-[18px] p-[2px] ${
+                    story.you ? "bg-muted" : "story-ring"
+                  }`}
+                >
+                  <img
+                    src={story.img}
+                    alt={story.name}
+                    className="h-full w-full rounded-[16px] border-2 border-black object-cover"
+                  />
+                </div>
+                {story.you && (
+                  <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-[7px] border-2 border-black bg-white text-black">
+                    <Plus className="h-3 w-3" />
+                  </span>
+                )}
               </div>
-              {story.you && (
-                <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-[7px] border-2 border-black bg-white text-black">
-                  <Plus className="h-3 w-3" />
-                </span>
-              )}
-            </div>
-            <span className="mt-1 max-w-[64px] truncate text-xs text-foreground/70">
+            </button>
+            <button
+              type="button"
+              aria-label={`Open ${story.username}'s profile`}
+              onClick={() => onOpenUser(story.username)}
+              className="mt-1 max-w-[64px] truncate text-xs text-foreground/70 transition hover:text-foreground"
+            >
               {story.name}
-            </span>
-          </button>
+            </button>
+          </div>
         ))}
       </div>
 
-      <HomeFeedPosts />
+      <HomeFeedPosts onOpenUser={onOpenUser} />
 
       {viewerIndex !== null && (
         <StoryViewer
           stories={others}
           startIndex={viewerIndex}
+          onOpenUser={(u) => {
+            setViewerIndex(null);
+            onOpenUser(u);
+          }}
           onClose={() => setViewerIndex(null)}
         />
       )}
@@ -364,10 +383,12 @@ function StoryViewer({
   stories,
   startIndex,
   onClose,
+  onOpenUser,
 }: {
   stories: Story[];
   startIndex: number;
   onClose: () => void;
+  onOpenUser: (username: string) => void;
 }) {
   const [index, setIndex] = useState(startIndex);
 
@@ -400,14 +421,21 @@ function StoryViewer({
       </div>
 
       <div className="flex items-center gap-3 px-4 py-3">
-        <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
-          <img
-            src={story.img}
-            alt={story.name}
-            className="h-full w-full rounded-[9px] border-2 border-black object-cover"
-          />
-        </div>
-        <span className="text-sm font-semibold text-white">{story.name}</span>
+        <button
+          type="button"
+          aria-label={`Open ${story.username}'s profile`}
+          onClick={() => onOpenUser(story.username)}
+          className="flex items-center gap-3"
+        >
+          <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
+            <img
+              src={story.img}
+              alt={story.name}
+              className="h-full w-full rounded-[9px] border-2 border-black object-cover"
+            />
+          </div>
+          <span className="text-sm font-semibold text-white">{story.name}</span>
+        </button>
         <span className="text-xs text-white/60">{index + 1}h</span>
         <button
           type="button"
@@ -561,11 +589,15 @@ function formatCount(n: number) {
   return n.toLocaleString("en-US");
 }
 
-function HomeFeedPosts() {
+function HomeFeedPosts({
+  onOpenUser,
+}: {
+  onOpenUser: (username: string) => void;
+}) {
   return (
     <>
       {POSTS.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <PostCard key={post.id} post={post} onOpenUser={onOpenUser} />
       ))}
     </>
   );
@@ -579,7 +611,13 @@ const SEED_COMMENTS: Comment[] = [
   { id: 3, user: "rohan.dev", text: "Drop the preset please!", time: "42m" },
 ];
 
-function PostCard({ post }: { post: Post }) {
+function PostCard({
+  post,
+  onOpenUser,
+}: {
+  post: Post;
+  onOpenUser: (username: string) => void;
+}) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [popping, setPopping] = useState(false);
@@ -646,7 +684,12 @@ function PostCard({ post }: { post: Post }) {
   return (
     <article className="border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
-        <div className="flex items-center gap-3">
+        <button
+          type="button"
+          aria-label={`Open ${post.user}'s profile`}
+          onClick={() => onOpenUser(post.user)}
+          className="flex items-center gap-3 text-left transition active:scale-[0.98]"
+        >
           <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
             <img
               src={post.avatar}
@@ -660,7 +703,7 @@ function PostCard({ post }: { post: Post }) {
               <p className="text-xs text-muted-foreground">{post.location}</p>
             )}
           </div>
-        </div>
+        </button>
         <button
           type="button"
           aria-label="Post options"
@@ -729,7 +772,13 @@ function PostCard({ post }: { post: Post }) {
           {formatCount(likeCount)} likes
         </p>
         <p className="text-sm text-foreground/90">
-          <span className="mr-2 font-semibold text-foreground">{post.user}</span>
+          <button
+            type="button"
+            onClick={() => onOpenUser(post.user)}
+            className="mr-2 font-semibold text-foreground hover:underline"
+          >
+            {post.user}
+          </button>
           {post.caption}
         </p>
         <button
@@ -744,6 +793,10 @@ function PostCard({ post }: { post: Post }) {
       {sheet === "comments" && (
         <CommentsSheet
           comments={comments}
+          onOpenUser={(u) => {
+            setSheet(null);
+            onOpenUser(u);
+          }}
           onAdd={(text) =>
             setComments((c) => [
               ...c,
@@ -832,10 +885,12 @@ function CommentsSheet({
   comments,
   onAdd,
   onClose,
+  onOpenUser,
 }: {
   comments: Comment[];
   onAdd: (text: string) => void;
   onClose: () => void;
+  onOpenUser: (username: string) => void;
 }) {
   const [value, setValue] = useState("");
 
@@ -853,16 +908,27 @@ function CommentsSheet({
         <div className="flex-1 px-4 py-2">
           {comments.map((c) => (
             <div key={c.id} className="flex gap-3 py-3">
-              <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-[10px] bg-muted">
+              <button
+                type="button"
+                aria-label={`Open ${c.user}'s profile`}
+                onClick={() => onOpenUser(c.user)}
+                className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-[10px] bg-muted"
+              >
                 <img
                   src={`https://i.pravatar.cc/64?u=${c.user}`}
                   alt={c.user}
                   className="h-full w-full object-cover"
                 />
-              </div>
+              </button>
               <div className="leading-snug">
                 <p className="text-sm">
-                  <span className="mr-2 font-semibold">{c.user}</span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenUser(c.user)}
+                    className="mr-2 font-semibold hover:underline"
+                  >
+                    {c.user}
+                  </button>
                   {c.text}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
@@ -898,7 +964,13 @@ function CommentsSheet({
 }
 
 /* Notifications / activity */
-function NotificationsSheet({ onClose }: { onClose: () => void }) {
+function NotificationsSheet({
+  onClose,
+  onOpenUser,
+}: {
+  onClose: () => void;
+  onOpenUser: (username: string) => void;
+}) {
   const items = [
     { id: 1, user: "zoya_design", text: "liked your post", time: "2m", follow: false },
     { id: 2, user: "rohan.dev", text: "started following you", time: "18m", follow: true },
@@ -910,15 +982,27 @@ function NotificationsSheet({ onClose }: { onClose: () => void }) {
       <div className="px-4 py-1">
         {items.map((n) => (
           <div key={n.id} className="flex items-center gap-3 py-3">
-            <div className="h-10 w-10 overflow-hidden rounded-[12px] bg-muted">
+            <button
+              type="button"
+              aria-label={`Open ${n.user}'s profile`}
+              onClick={() => onOpenUser(n.user)}
+              className="h-10 w-10 overflow-hidden rounded-[12px] bg-muted"
+            >
               <img
                 src={`https://i.pravatar.cc/80?u=${n.user}`}
                 alt={n.user}
                 className="h-full w-full object-cover"
               />
-            </div>
+            </button>
             <p className="flex-1 text-sm leading-snug">
-              <span className="font-semibold">{n.user}</span> {n.text}{" "}
+              <button
+                type="button"
+                onClick={() => onOpenUser(n.user)}
+                className="font-semibold hover:underline"
+              >
+                {n.user}
+              </button>{" "}
+              {n.text}{" "}
               <span className="text-muted-foreground">{n.time}</span>
             </p>
             {n.follow && (
@@ -1005,7 +1089,11 @@ const REELS: Reel[] = [
   },
 ];
 
-function ReelsPage() {
+function ReelsPage({
+  onOpenUser,
+}: {
+  onOpenUser: (username: string) => void;
+}) {
   const [liked, setLiked] = useState<Record<number, boolean>>({});
   return (
     <div className="no-scrollbar flex h-full snap-y snap-mandatory flex-col overflow-y-auto">
@@ -1047,14 +1135,21 @@ function ReelsPage() {
 
             <div className="absolute bottom-6 left-4 z-10 pr-16">
               <div className="mb-2 flex items-center gap-2">
-                <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
-                  <img
-                    src={`https://i.pravatar.cc/80?u=${reel.handle}`}
-                    alt={reel.handle}
-                    className="h-full w-full rounded-[9px] border-2 border-black object-cover"
-                  />
-                </div>
-                <h3 className="text-base font-semibold text-white">{reel.handle}</h3>
+                <button
+                  type="button"
+                  aria-label={`Open ${reel.handle}'s profile`}
+                  onClick={() => onOpenUser(reel.handle.replace("@", ""))}
+                  className="flex items-center gap-2"
+                >
+                  <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
+                    <img
+                      src={`https://i.pravatar.cc/80?u=${reel.handle}`}
+                      alt={reel.handle}
+                      className="h-full w-full rounded-[9px] border-2 border-black object-cover"
+                    />
+                  </div>
+                  <h3 className="text-base font-semibold text-white">{reel.handle}</h3>
+                </button>
                 <button className="rounded-md border border-white/40 px-2 py-0.5 text-xs font-semibold text-white">
                   Follow
                 </button>
@@ -1280,6 +1375,101 @@ function ProfilePage() {
             />
           </div>
         ))}
+      </div>
+    </div>
+  );
+}
+
+/* ---------------------------------------------------------------- */
+/* 6. OTHER USER PROFILE (opened from DP / username taps)            */
+/* ---------------------------------------------------------------- */
+function UserProfilePage({
+  username,
+  onClose,
+}: {
+  username: string;
+  onClose: () => void;
+}) {
+  const [following, setFollowing] = useState(false);
+  const post = POSTS.find((p) => p.user === username);
+  const story = STORIES.find((s) => s.username === username);
+  const avatar =
+    post?.avatar ?? story?.img ?? `https://i.pravatar.cc/200?u=${username}`;
+  const displayName = story?.name ?? username.replace(/[._]/g, " ");
+
+  return (
+    <div className="fade-in absolute inset-0 z-[85] flex flex-col bg-black">
+      <div className="flex items-center gap-3 border-b border-border px-3 py-3">
+        <button type="button" aria-label="Back" onClick={onClose}>
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+        <h2 className="text-base font-semibold">{username}</h2>
+      </div>
+
+      <div className="no-scrollbar flex-1 overflow-y-auto p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
+            <img
+              src={avatar}
+              alt={username}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="flex gap-6 text-center">
+            <div>
+              <span className="block font-bold">
+                {post ? 24 : 9}
+              </span>
+              <span className="text-xs text-muted-foreground">Posts</span>
+            </div>
+            <div>
+              <span className="block font-bold">3.2K</span>
+              <span className="text-xs text-muted-foreground">Followers</span>
+            </div>
+            <div>
+              <span className="block font-bold">412</span>
+              <span className="text-xs text-muted-foreground">Following</span>
+            </div>
+          </div>
+        </div>
+
+        <h3 className="font-bold capitalize">{displayName}</h3>
+        <p className="mb-4 text-sm text-foreground/80">
+          {post?.caption ?? "Sharing moments on Kurbati Chitchat 🌙"}
+        </p>
+
+        <div className="mb-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setFollowing((v) => !v)}
+            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
+              following
+                ? "border border-border bg-muted text-foreground hover:bg-accent"
+                : "bg-white text-black"
+            }`}
+          >
+            {following ? "Following" : "Follow"}
+          </button>
+          <button
+            type="button"
+            className="flex-1 rounded-lg border border-border bg-muted py-2 text-sm font-semibold transition hover:bg-accent"
+          >
+            Message
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
+            <div key={item} className="h-28 overflow-hidden bg-muted">
+              <img
+                src={`https://picsum.photos/seed/${username}${item}/300/300`}
+                alt={`${username} post`}
+                className="h-full w-full object-cover transition hover:scale-105"
+                loading="lazy"
+              />
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
