@@ -1065,7 +1065,11 @@ const REELS: Reel[] = [
   },
 ];
 
-function ReelsPage() {
+function ReelsPage({
+  onOpenUser,
+}: {
+  onOpenUser: (username: string) => void;
+}) {
   const [liked, setLiked] = useState<Record<number, boolean>>({});
   return (
     <div className="no-scrollbar flex h-full snap-y snap-mandatory flex-col overflow-y-auto">
