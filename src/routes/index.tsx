@@ -583,11 +583,15 @@ function formatCount(n: number) {
   return n.toLocaleString("en-US");
 }
 
-function HomeFeedPosts() {
+function HomeFeedPosts({
+  onOpenUser,
+}: {
+  onOpenUser: (username: string) => void;
+}) {
   return (
     <>
       {POSTS.map((post) => (
-        <PostCard key={post.id} post={post} />
+        <PostCard key={post.id} post={post} onOpenUser={onOpenUser} />
       ))}
     </>
   );
