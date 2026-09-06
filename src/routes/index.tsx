@@ -158,7 +158,13 @@ function Index() {
         </nav>
 
         {notificationsOpen && (
-          <NotificationsSheet onClose={() => setNotificationsOpen(false)} />
+          <NotificationsSheet
+            onOpenUser={(u) => {
+              setNotificationsOpen(false);
+              setViewUser(u);
+            }}
+            onClose={() => setNotificationsOpen(false)}
+          />
         )}
         {viewUser && (
           <UserProfilePage
