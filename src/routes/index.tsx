@@ -1355,3 +1355,98 @@ function ProfilePage() {
     </div>
   );
 }
+
+/* ---------------------------------------------------------------- */
+/* 6. OTHER USER PROFILE (opened from DP / username taps)            */
+/* ---------------------------------------------------------------- */
+function UserProfilePage({
+  username,
+  onClose,
+}: {
+  username: string;
+  onClose: () => void;
+}) {
+  const [following, setFollowing] = useState(false);
+  const post = POSTS.find((p) => p.user === username);
+  const story = STORIES.find((s) => s.username === username);
+  const avatar =
+    post?.avatar ?? story?.img ?? `https://i.pravatar.cc/200?u=${username}`;
+  const displayName = story?.name ?? username.replace(/[._]/g, " ");
+
+  return (
+    <div className="fade-in absolute inset-0 z-[85] flex flex-col bg-black">
+      <div className="flex items-center gap-3 border-b border-border px-3 py-3">
+        <button type="button" aria-label="Back" onClick={onClose}>
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+        <h2 className="text-base font-semibold">{username}</h2>
+      </div>
+
+      <div className="no-scrollbar flex-1 overflow-y-auto p-4">
+        <div className="mb-4 flex items-center justify-between">
+          <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
+            <img
+              src={avatar}
+              alt={username}
+              className="h-full w-full object-cover"
+            />
+          </div>
+          <div className="flex gap-6 text-center">
+            <div>
+              <span className="block font-bold">
+                {post ? 24 : 9}
+              </span>
+              <span className="text-xs text-muted-foreground">Posts</span>
+            </div>
+            <div>
+              <span className="block font-bold">3.2K</span>
+              <span className="text-xs text-muted-foreground">Followers</span>
+            </div>
+            <div>
+              <span className="block font-bold">412</span>
+              <span className="text-xs text-muted-foreground">Following</span>
+            </div>
+          </div>
+        </div>
+
+        <h3 className="font-bold capitalize">{displayName}</h3>
+        <p className="mb-4 text-sm text-foreground/80">
+          {post?.caption ?? "Sharing moments on Kurbati Chitchat 🌙"}
+        </p>
+
+        <div className="mb-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setFollowing((v) => !v)}
+            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
+              following
+                ? "border border-border bg-muted text-foreground hover:bg-accent"
+                : "bg-white text-black"
+            }`}
+          >
+            {following ? "Following" : "Follow"}
+          </button>
+          <button
+            type="button"
+            className="flex-1 rounded-lg border border-border bg-muted py-2 text-sm font-semibold transition hover:bg-accent"
+          >
+            Message
+          </button>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1">
+          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
+            <div key={item} className="h-28 overflow-hidden bg-muted">
+              <img
+                src={`https://picsum.photos/seed/${username}${item}/300/300`}
+                alt={`${username} post`}
+                className="h-full w-full object-cover transition hover:scale-105"
+                loading="lazy"
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
