@@ -415,14 +415,21 @@ function StoryViewer({
       </div>
 
       <div className="flex items-center gap-3 px-4 py-3">
-        <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
-          <img
-            src={story.img}
-            alt={story.name}
-            className="h-full w-full rounded-[9px] border-2 border-black object-cover"
-          />
-        </div>
-        <span className="text-sm font-semibold text-white">{story.name}</span>
+        <button
+          type="button"
+          aria-label={`Open ${story.username}'s profile`}
+          onClick={() => onOpenUser(story.username)}
+          className="flex items-center gap-3"
+        >
+          <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
+            <img
+              src={story.img}
+              alt={story.name}
+              className="h-full w-full rounded-[9px] border-2 border-black object-cover"
+            />
+          </div>
+          <span className="text-sm font-semibold text-white">{story.name}</span>
+        </button>
         <span className="text-xs text-white/60">{index + 1}h</span>
         <button
           type="button"
