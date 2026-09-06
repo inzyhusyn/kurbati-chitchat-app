@@ -902,16 +902,27 @@ function CommentsSheet({
         <div className="flex-1 px-4 py-2">
           {comments.map((c) => (
             <div key={c.id} className="flex gap-3 py-3">
-              <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-[10px] bg-muted">
+              <button
+                type="button"
+                aria-label={`Open ${c.user}'s profile`}
+                onClick={() => onOpenUser(c.user)}
+                className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-[10px] bg-muted"
+              >
                 <img
                   src={`https://i.pravatar.cc/64?u=${c.user}`}
                   alt={c.user}
                   className="h-full w-full object-cover"
                 />
-              </div>
+              </button>
               <div className="leading-snug">
                 <p className="text-sm">
-                  <span className="mr-2 font-semibold">{c.user}</span>
+                  <button
+                    type="button"
+                    onClick={() => onOpenUser(c.user)}
+                    className="mr-2 font-semibold hover:underline"
+                  >
+                    {c.user}
+                  </button>
                   {c.text}
                 </p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
