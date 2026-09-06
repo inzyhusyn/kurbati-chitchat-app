@@ -879,10 +879,12 @@ function CommentsSheet({
   comments,
   onAdd,
   onClose,
+  onOpenUser,
 }: {
   comments: Comment[];
   onAdd: (text: string) => void;
   onClose: () => void;
+  onOpenUser: (username: string) => void;
 }) {
   const [value, setValue] = useState("");
 
