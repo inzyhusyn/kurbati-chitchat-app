@@ -605,7 +605,13 @@ const SEED_COMMENTS: Comment[] = [
   { id: 3, user: "rohan.dev", text: "Drop the preset please!", time: "42m" },
 ];
 
-function PostCard({ post }: { post: Post }) {
+function PostCard({
+  post,
+  onOpenUser,
+}: {
+  post: Post;
+  onOpenUser: (username: string) => void;
+}) {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [popping, setPopping] = useState(false);
