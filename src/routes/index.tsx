@@ -964,7 +964,13 @@ function CommentsSheet({
 }
 
 /* Notifications / activity */
-function NotificationsSheet({ onClose }: { onClose: () => void }) {
+function NotificationsSheet({
+  onClose,
+  onOpenUser,
+}: {
+  onClose: () => void;
+  onOpenUser: (username: string) => void;
+}) {
   const items = [
     { id: 1, user: "zoya_design", text: "liked your post", time: "2m", follow: false },
     { id: 2, user: "rohan.dev", text: "started following you", time: "18m", follow: true },
@@ -976,15 +982,27 @@ function NotificationsSheet({ onClose }: { onClose: () => void }) {
       <div className="px-4 py-1">
         {items.map((n) => (
           <div key={n.id} className="flex items-center gap-3 py-3">
-            <div className="h-10 w-10 overflow-hidden rounded-[12px] bg-muted">
+            <button
+              type="button"
+              aria-label={`Open ${n.user}'s profile`}
+              onClick={() => onOpenUser(n.user)}
+              className="h-10 w-10 overflow-hidden rounded-[12px] bg-muted"
+            >
               <img
                 src={`https://i.pravatar.cc/80?u=${n.user}`}
                 alt={n.user}
                 className="h-full w-full object-cover"
               />
-            </div>
+            </button>
             <p className="flex-1 text-sm leading-snug">
-              <span className="font-semibold">{n.user}</span> {n.text}{" "}
+              <button
+                type="button"
+                onClick={() => onOpenUser(n.user)}
+                className="font-semibold hover:underline"
+              >
+                {n.user}
+              </button>{" "}
+              {n.text}{" "}
               <span className="text-muted-foreground">{n.time}</span>
             </p>
             {n.follow && (
