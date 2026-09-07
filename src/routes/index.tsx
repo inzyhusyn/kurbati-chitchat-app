@@ -1397,9 +1397,18 @@ function ProfilePage() {
           </div>
         ))}
       </div>
+      </div>
+
+      {settingsOpen && (
+        <SettingsScreen
+          username={username}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }
+
 
 /* ---------------------------------------------------------------- */
 /* 6. OTHER USER PROFILE (opened from DP / username taps)            */
