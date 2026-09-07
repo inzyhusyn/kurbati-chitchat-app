@@ -23,8 +23,11 @@ import {
   ImagePlus,
   Camera,
   UserPlus,
+  Settings,
 } from "lucide-react";
 import brandLogo from "@/assets/kurbati-logo.png";
+import { SettingsScreen } from "@/components/settings-screen";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -69,44 +72,48 @@ function Index() {
     <div className="flex min-h-screen justify-center bg-background font-sans text-foreground">
       {/* Mobile Frame */}
       <div className="relative flex h-screen w-full max-w-md flex-col overflow-hidden border-x border-border bg-black">
-        {/* TOP HEADER — auto-hides on scroll down */}
-        <header
-          className={`absolute inset-x-0 top-0 z-50 flex items-center justify-between border-b border-border bg-[#000000] px-4 py-2.5 transition-transform duration-300 ${
-            headerHidden ? "-translate-y-full" : "translate-y-0"
-          }`}
-        >
-          <h1 className="flex items-center">
-            <img
-              src={brandLogo}
-              alt="Kurbati Chitchat"
-              className="h-10 w-auto select-none"
-              draggable={false}
-            />
-          </h1>
-          <div className="flex items-center gap-5">
-            <button
-              type="button"
-              aria-label="Open notifications"
-              onClick={() => setNotificationsOpen(true)}
-              className="relative"
-            >
-              <Heart className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
-              <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-destructive" />
-            </button>
-            <button
-              type="button"
-              aria-label="Open messages"
-              onClick={() => setActiveTab("chat")}
-            >
-              <MessageCircle className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
-            </button>
-          </div>
-        </header>
+        {/* TOP HEADER — Home tab only, auto-hides on scroll down */}
+        {activeTab === "home" && (
+          <header
+            className={`absolute inset-x-0 top-0 z-50 flex items-center justify-between border-b border-border bg-[#000000] px-4 py-2.5 transition-transform duration-300 ${
+              headerHidden ? "-translate-y-full" : "translate-y-0"
+            }`}
+          >
+            <h1 className="flex items-center">
+              <img
+                src={brandLogo}
+                alt="Kurbati Chitchat"
+                className="h-10 w-auto select-none"
+                draggable={false}
+              />
+            </h1>
+            <div className="flex items-center gap-5">
+              <button
+                type="button"
+                aria-label="Open notifications"
+                onClick={() => setNotificationsOpen(true)}
+                className="relative"
+              >
+                <Heart className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-destructive" />
+              </button>
+              <button
+                type="button"
+                aria-label="Open messages"
+                onClick={() => setActiveTab("chat")}
+              >
+                <MessageCircle className="h-6 w-6 cursor-pointer text-white transition hover:scale-110" />
+              </button>
+            </div>
+          </header>
+        )}
 
         {/* MAIN DYNAMIC CONTENT AREA */}
         <main
           onScroll={handleScroll}
-          className="no-scrollbar flex-1 overflow-y-auto pb-20 pt-[60px]"
+          className={`no-scrollbar flex-1 overflow-y-auto pb-20 ${
+            activeTab === "home" ? "pt-[60px]" : "pt-0"
+          }`}
         >
           {activeTab === "home" && <HomeFeed onOpenUser={setViewUser} />}
           {activeTab === "search" && <ExplorePage />}
@@ -114,6 +121,7 @@ function Index() {
           {activeTab === "chat" && <ChatPage />}
           {activeTab === "profile" && <ProfilePage />}
         </main>
+
 
         {/* BOTTOM NAVIGATION BAR */}
         <nav className="absolute bottom-0 z-50 flex w-full items-center justify-around border-t border-border bg-black/90 py-3 backdrop-blur-md">
@@ -1305,10 +1313,26 @@ function ChatThread({ chat, onBack }: { chat: Chat; onBack: () => void }) {
 /* ---------------------------------------------------------------- */
 function ProfilePage() {
   const [grid, setGrid] = useState<"posts" | "saved">("posts");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const username = "kurbati.creator";
   return (
-    <div className="flex flex-col p-4">
+    <div className="flex flex-col">
+      {/* Profile header — username left, settings gear right */}
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-black px-4 py-3">
+        <h2 className="text-lg font-semibold text-white">{username}</h2>
+        <button
+          type="button"
+          aria-label="Open settings and privacy"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Settings className="h-6 w-6 text-white transition hover:scale-110" />
+        </button>
+      </div>
+
+      <div className="flex flex-col p-4">
       <div className="mb-4 flex items-center justify-between">
         <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
+
           <img
             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80"
             alt="Profile"
@@ -1376,9 +1400,18 @@ function ProfilePage() {
           </div>
         ))}
       </div>
+      </div>
+
+      {settingsOpen && (
+        <SettingsScreen
+          username={username}
+          onClose={() => setSettingsOpen(false)}
+        />
+      )}
     </div>
   );
 }
+
 
 /* ---------------------------------------------------------------- */
 /* 6. OTHER USER PROFILE (opened from DP / username taps)            */
