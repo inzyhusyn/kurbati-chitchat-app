@@ -1310,10 +1310,26 @@ function ChatThread({ chat, onBack }: { chat: Chat; onBack: () => void }) {
 /* ---------------------------------------------------------------- */
 function ProfilePage() {
   const [grid, setGrid] = useState<"posts" | "saved">("posts");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const username = "kurbati.creator";
   return (
-    <div className="flex flex-col p-4">
+    <div className="flex flex-col">
+      {/* Profile header — username left, settings gear right */}
+      <div className="sticky top-0 z-40 flex items-center justify-between border-b border-border bg-black px-4 py-3">
+        <h2 className="text-lg font-semibold text-white">{username}</h2>
+        <button
+          type="button"
+          aria-label="Open settings and privacy"
+          onClick={() => setSettingsOpen(true)}
+        >
+          <Settings className="h-6 w-6 text-white transition hover:scale-110" />
+        </button>
+      </div>
+
+      <div className="flex flex-col p-4">
       <div className="mb-4 flex items-center justify-between">
         <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
+
           <img
             src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80"
             alt="Profile"
