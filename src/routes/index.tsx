@@ -23,8 +23,11 @@ import {
   ImagePlus,
   Camera,
   UserPlus,
+  Settings,
 } from "lucide-react";
 import brandLogo from "@/assets/kurbati-logo.png";
+import { SettingsScreen } from "@/components/settings-screen";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
