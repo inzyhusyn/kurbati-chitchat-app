@@ -14,7 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      posts: {
+        Row: {
+          audience: string
+          author_username: string
+          caption: string
+          comments_off: boolean
+          created_at: string
+          custom_audience: Json
+          filter: string
+          hide_counts: boolean
+          id: string
+          location: string | null
+          media_type: string
+          media_url: string
+          music: string | null
+          poll_options: Json
+          poll_question: string | null
+          post_kind: string
+          tagged_people: Json
+        }
+        Insert: {
+          audience?: string
+          author_username?: string
+          caption?: string
+          comments_off?: boolean
+          created_at?: string
+          custom_audience?: Json
+          filter?: string
+          hide_counts?: boolean
+          id?: string
+          location?: string | null
+          media_type?: string
+          media_url: string
+          music?: string | null
+          poll_options?: Json
+          poll_question?: string | null
+          post_kind?: string
+          tagged_people?: Json
+        }
+        Update: {
+          audience?: string
+          author_username?: string
+          caption?: string
+          comments_off?: boolean
+          created_at?: string
+          custom_audience?: Json
+          filter?: string
+          hide_counts?: boolean
+          id?: string
+          location?: string | null
+          media_type?: string
+          media_url?: string
+          music?: string | null
+          poll_options?: Json
+          poll_question?: string | null
+          post_kind?: string
+          tagged_people?: Json
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
