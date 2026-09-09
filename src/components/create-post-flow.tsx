@@ -1050,9 +1050,9 @@ function ToggleRow({
         }`}
       >
         <span
-          className={`block h-5 w-5 rounded-full bg-black transition ${
-            checked ? "translate-x-5" : "translate-x-0"
-          } ${checked ? "" : "bg-white"}`}
+          className={`block h-5 w-5 rounded-full transition ${
+            checked ? "translate-x-5 bg-black" : "translate-x-0 bg-white"
+          }`}
         />
       </button>
     </div>
