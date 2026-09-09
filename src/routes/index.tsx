@@ -59,6 +59,7 @@ function Index() {
   const [headerHidden, setHeaderHidden] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [viewUser, setViewUser] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const lastScroll = useRef(0);
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
