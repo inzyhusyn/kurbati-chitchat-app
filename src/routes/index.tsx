@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import brandLogo from "@/assets/kurbati-logo.png";
 import { SettingsScreen } from "@/components/settings-screen";
+import { CreatePostFlow } from "@/components/create-post-flow";
 
 
 export const Route = createFileRoute("/")({
@@ -58,6 +59,7 @@ function Index() {
   const [headerHidden, setHeaderHidden] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [viewUser, setViewUser] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
   const lastScroll = useRef(0);
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
@@ -144,6 +146,7 @@ function Index() {
           <button
             type="button"
             aria-label="Create new post"
+            onClick={() => setCreateOpen(true)}
             className="grid h-9 w-9 place-items-center rounded-[10px] border border-white/70 bg-white/10 text-white transition hover:bg-white hover:text-black"
           >
             <Plus className="h-5 w-5" />
@@ -172,6 +175,12 @@ function Index() {
               setViewUser(u);
             }}
             onClose={() => setNotificationsOpen(false)}
+          />
+        )}
+        {createOpen && (
+          <CreatePostFlow
+            username="kurbati.creator"
+            onClose={() => setCreateOpen(false)}
           />
         )}
         {viewUser && (
