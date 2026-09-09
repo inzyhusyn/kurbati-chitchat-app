@@ -33,6 +33,7 @@ export type Database = {
           poll_question: string | null
           post_kind: string
           tagged_people: Json
+          user_id: string | null
         }
         Insert: {
           audience?: string
@@ -52,6 +53,7 @@ export type Database = {
           poll_question?: string | null
           post_kind?: string
           tagged_people?: Json
+          user_id?: string | null
         }
         Update: {
           audience?: string
@@ -71,6 +73,91 @@ export type Database = {
           poll_question?: string | null
           post_kind?: string
           tagged_people?: Json
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          bio: string
+          created_at: string
+          display_name: string
+          hide_counts: boolean
+          id: string
+          is_private: boolean
+          settings: Json
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          bio?: string
+          created_at?: string
+          display_name?: string
+          hide_counts?: boolean
+          id: string
+          is_private?: boolean
+          settings?: Json
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          bio?: string
+          created_at?: string
+          display_name?: string
+          hide_counts?: boolean
+          id?: string
+          is_private?: boolean
+          settings?: Json
+          username?: string
+        }
+        Relationships: []
+      }
+      stories: {
+        Row: {
+          audience: string
+          author_username: string
+          caption: string
+          created_at: string
+          custom_audience: Json
+          expires_at: string
+          filter: string
+          hide_counts: boolean
+          id: string
+          media_type: string
+          media_url: string
+          music: string | null
+          user_id: string
+        }
+        Insert: {
+          audience?: string
+          author_username?: string
+          caption?: string
+          created_at?: string
+          custom_audience?: Json
+          expires_at?: string
+          filter?: string
+          hide_counts?: boolean
+          id?: string
+          media_type?: string
+          media_url: string
+          music?: string | null
+          user_id: string
+        }
+        Update: {
+          audience?: string
+          author_username?: string
+          caption?: string
+          created_at?: string
+          custom_audience?: Json
+          expires_at?: string
+          filter?: string
+          hide_counts?: boolean
+          id?: string
+          media_type?: string
+          media_url?: string
+          music?: string | null
+          user_id?: string
         }
         Relationships: []
       }
