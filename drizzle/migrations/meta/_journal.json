@@ -8,6 +8,13 @@
       "when": 1788849335073,
       "tag": "0000_create_posts",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1788920941291,
+      "tag": "0001_auth_profiles_stories",
+      "breakpoints": true
     }
   ]
 }
