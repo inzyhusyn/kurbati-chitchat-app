@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import brandLogo from "@/assets/kurbati-logo.png";
 import { SettingsScreen } from "@/components/settings-screen";
+import { CreatePostFlow } from "@/components/create-post-flow";
 
 
 export const Route = createFileRoute("/")({
