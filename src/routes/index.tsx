@@ -146,6 +146,7 @@ function Index() {
           <button
             type="button"
             aria-label="Create new post"
+            onClick={() => setCreateOpen(true)}
             className="grid h-9 w-9 place-items-center rounded-[10px] border border-white/70 bg-white/10 text-white transition hover:bg-white hover:text-black"
           >
             <Plus className="h-5 w-5" />
