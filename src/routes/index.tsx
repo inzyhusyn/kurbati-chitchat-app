@@ -177,6 +177,12 @@ function Index() {
             onClose={() => setNotificationsOpen(false)}
           />
         )}
+        {createOpen && (
+          <CreatePostFlow
+            username="kurbati.creator"
+            onClose={() => setCreateOpen(false)}
+          />
+        )}
         {viewUser && (
           <UserProfilePage
             username={viewUser}
