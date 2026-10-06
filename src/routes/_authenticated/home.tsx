@@ -849,9 +849,11 @@ function PostCard({
             />
           </button>
         </div>
-        <p className="mb-1 text-sm font-semibold">
-          {formatCount(likeCount)} likes
-        </p>
+        {!post.hideCounts && (
+          <p className="mb-1 text-sm font-semibold">
+            {formatCount(likeCount)} likes
+          </p>
+        )}
         <p className="text-sm text-foreground/90">
           <button
             type="button"
@@ -1389,6 +1391,19 @@ function ProfilePage() {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const { data: me } = useMyProfile();
   const username = me?.username ?? "";
+  const { data: myPosts = [] } = useQuery({
+    queryKey: ["feed", "mine", me?.id],
+    enabled: !!me,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, media_url")
+        .eq("user_id", me!.id)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
   return (
     <div className="flex flex-col">
       {/* Profile header — username left, settings gear right */}
@@ -1408,14 +1423,14 @@ function ProfilePage() {
         <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
 
           <img
-            src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80"
-            alt="Profile"
+            src={me?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(username || "K")}`}
+            alt={`${username} profile picture`}
             className="h-full w-full object-cover"
           />
         </div>
         <div className="flex gap-6 text-center">
           <div>
-            <span className="block font-bold">12</span>
+            <span className="block font-bold">{myPosts.length}</span>
             <span className="text-xs text-muted-foreground">Posts</span>
           </div>
           <div>
@@ -1428,10 +1443,8 @@ function ProfilePage() {
           </div>
         </div>
       </div>
-      <h3 className="font-bold">Kurbati Creator</h3>
-      <p className="mb-4 text-sm text-foreground/80">
-        Building Kurbati Chitchat 🌙 Strict deep-dark mode enthusiast.
-      </p>
+      <h3 className="font-bold">{me?.display_name || username}</h3>
+      <p className="mb-4 text-sm text-foreground/80">{me?.bio}</p>
       <button className="mb-4 rounded-lg border border-border bg-muted py-2 text-sm font-semibold transition hover:bg-accent">
         Edit Profile
       </button>
@@ -1463,10 +1476,13 @@ function ProfilePage() {
       </div>
 
       <div className="grid grid-cols-3 gap-1">
-        {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
-          <div key={item} className="h-28 overflow-hidden bg-muted">
+        {grid === "posts" && myPosts.length === 0 && (
+          <p className="col-span-3 py-10 text-center text-sm text-muted-foreground">No posts yet — tap + to share one.</p>
+        )}
+        {(grid === "posts" ? myPosts.map((p) => ({ k: p.id, src: p.media_url })) : [1, 2, 3, 4, 5, 6].map((i) => ({ k: String(i), src: `https://picsum.photos/seed/saved${i}/300/300` }))).map((item) => (
+          <div key={item.k} className="h-28 overflow-hidden bg-muted">
             <img
-              src={`https://picsum.photos/seed/${grid}${item}/300/300`}
+              src={item.src}
               alt="user post"
               className="h-full w-full object-cover transition hover:scale-105"
               loading="lazy"

@@ -19,6 +19,7 @@ import {
   Volume2,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { persistMedia } from "@/lib/account";
 
 /* ---------------------------------------------------------------- data */
 
@@ -705,9 +706,24 @@ function DetailsScreen({
   const share = async () => {
     setSaving(true);
     const first = media[0]!;
+    const { data: u } = await supabase.auth.getUser();
+    if (!u.user) {
+      setSaving(false);
+      notify("Please log in again.");
+      return;
+    }
+    let mediaUrl = first.url;
+    try {
+      mediaUrl = await persistMedia(first.url);
+    } catch {
+      setSaving(false);
+      notify("Upload failed. Please try again.");
+      return;
+    }
     const { error } = await supabase.from("posts").insert({
+      user_id: u.user.id,
       author_username: username,
-      media_url: first.url,
+      media_url: mediaUrl,
       media_type: first.type,
       post_kind: mode.toLowerCase(),
       filter,

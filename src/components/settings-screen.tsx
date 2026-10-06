@@ -539,13 +539,13 @@ export function SettingsScreen({
               icon={LogOut}
               label="Log out"
               danger
-              onClick={() => set("signedOut", true)}
+              onClick={() => signOut("local")}
             />
             <Row
               icon={LogOut}
               label="Log out from all devices"
               danger
-              onClick={() => set("signedOut", true)}
+              onClick={() => signOut("global")}
             />
             <p className="px-4 pb-4 pt-6 text-center text-xs text-muted-foreground">
               Kurbati Chitchat · v1.0.0
@@ -688,7 +688,7 @@ export function SettingsScreen({
 
         {current === "sessions" && (
           <SessionsScreen
-            onLogoutAll={() => set("signedOut", true)}
+            onLogoutAll={() => signOut("global")}
             onEnded={() => setToast("Session ended")}
           />
         )}
