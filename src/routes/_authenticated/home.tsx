@@ -30,7 +30,7 @@ import { SettingsScreen } from "@/components/settings-screen";
 import { CreatePostFlow } from "@/components/create-post-flow";
 
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/_authenticated/home")({
   head: () => ({
     meta: [
       { title: "Kurbati Chitchat — Deep Dark Social" },
