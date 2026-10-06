@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 import {
   ChevronLeft,
   ChevronRight,
@@ -441,6 +444,14 @@ export function SettingsScreen({
   const [stack, setStack] = useState<ScreenKey[]>(["root"]);
   const [s, setS] = useState<SettingsState>(DEFAULTS);
   const [toast, setToast] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const signOut = async (scope: "local" | "global") => {
+    await queryClient.cancelQueries();
+    queryClient.clear();
+    await supabase.auth.signOut({ scope });
+    navigate({ to: "/auth", replace: true });
+  };
 
   useEffect(() => setS(loadSettings()), []);
   useEffect(() => {
@@ -539,13 +550,13 @@ export function SettingsScreen({
               icon={LogOut}
               label="Log out"
               danger
-              onClick={() => set("signedOut", true)}
+              onClick={() => signOut("local")}
             />
             <Row
               icon={LogOut}
               label="Log out from all devices"
               danger
-              onClick={() => set("signedOut", true)}
+              onClick={() => signOut("global")}
             />
             <p className="px-4 pb-4 pt-6 text-center text-xs text-muted-foreground">
               Kurbati Chitchat · v1.0.0
@@ -688,7 +699,7 @@ export function SettingsScreen({
 
         {current === "sessions" && (
           <SessionsScreen
-            onLogoutAll={() => set("signedOut", true)}
+            onLogoutAll={() => signOut("global")}
             onEnded={() => setToast("Session ended")}
           />
         )}
