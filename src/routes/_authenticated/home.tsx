@@ -28,6 +28,9 @@ import {
 import brandLogo from "@/assets/kurbati-logo.png";
 import { SettingsScreen } from "@/components/settings-screen";
 import { CreatePostFlow } from "@/components/create-post-flow";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useMyProfile, persistMedia } from "@/lib/account";
 
 
 export const Route = createFileRoute("/_authenticated/home")({
@@ -61,6 +64,8 @@ function Index() {
   const [viewUser, setViewUser] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const lastScroll = useRef(0);
+  const { data: myProfile } = useMyProfile();
+  const queryClient = useQueryClient();
 
   const handleScroll = (e: React.UIEvent<HTMLElement>) => {
     const y = e.currentTarget.scrollTop;
@@ -179,8 +184,9 @@ function Index() {
         )}
         {createOpen && (
           <CreatePostFlow
-            username="kurbati.creator"
+            username={myProfile?.username ?? "you"}
             onClose={() => setCreateOpen(false)}
+            onPosted={() => queryClient.invalidateQueries({ queryKey: ["feed"] })}
           />
         )}
         {viewUser && (
@@ -507,9 +513,37 @@ function StoryUploadModal({ onClose }: { onClose: () => void }) {
   const [posted, setPosted] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  const [file, setFile] = useState<File | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const { data: me } = useMyProfile();
   const onPick = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) setPreview(URL.createObjectURL(file));
+    const f = e.target.files?.[0];
+    if (f) {
+      setFile(f);
+      setPreview(URL.createObjectURL(f));
+    }
+  };
+  const shareStory = async () => {
+    if (!preview || !me) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      const url = await persistMedia(preview);
+      const { error } = await supabase.from("stories").insert({
+        user_id: me.id,
+        author_username: me.username,
+        media_url: url,
+        media_type: file?.type.startsWith("video") ? "video" : "image",
+      });
+      if (error) throw error;
+      setPosted(true);
+      window.setTimeout(onClose, 900);
+    } catch {
+      setErr("Could not share story. Try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -547,16 +581,14 @@ function StoryUploadModal({ onClose }: { onClose: () => void }) {
           </button>
           <button
             type="button"
-            disabled={!preview}
-            onClick={() => {
-              setPosted(true);
-              window.setTimeout(onClose, 900);
-            }}
+            disabled={!preview || busy}
+            onClick={shareStory}
             className="flex-1 rounded-lg bg-white py-2.5 text-sm font-semibold text-black transition disabled:opacity-40"
           >
-            Share story
+            {busy ? "Sharing…" : "Share story"}
           </button>
         </div>
+        {err && <p className="mt-2 text-xs text-destructive">{err}</p>}
       </div>
       {posted && <Toast message="Story shared" />}
     </BottomSheet>
@@ -564,7 +596,9 @@ function StoryUploadModal({ onClose }: { onClose: () => void }) {
 }
 
 type Post = {
-  id: number;
+  id: number | string;
+  hideCounts?: boolean;
+  commentsOff?: boolean;
   user: string;
   avatar: string;
   img: string;
@@ -611,9 +645,39 @@ function HomeFeedPosts({
 }: {
   onOpenUser: (username: string) => void;
 }) {
+  const { data: dbPosts = [] } = useQuery({
+    queryKey: ["feed"],
+    queryFn: async (): Promise<Post[]> => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, user_id, author_username, media_url, caption, location, hide_counts, comments_off")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      if (error) throw error;
+      const ids = [...new Set(data.map((p) => p.user_id).filter(Boolean))] as string[];
+      const { data: profs } = ids.length
+        ? await supabase.from("profiles").select("id, username, avatar_url").in("id", ids)
+        : { data: [] as { id: string; username: string; avatar_url: string | null }[] };
+      const byId = new Map((profs ?? []).map((p) => [p.id, p]));
+      return data.map((p) => {
+        const prof = p.user_id ? byId.get(p.user_id) : undefined;
+        return {
+          id: p.id,
+          user: prof?.username ?? p.author_username,
+          avatar: prof?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(prof?.username ?? p.author_username)}`,
+          img: p.media_url,
+          caption: p.caption,
+          likes: 0,
+          location: p.location ?? undefined,
+          hideCounts: p.hide_counts,
+          commentsOff: p.comments_off,
+        };
+      });
+    },
+  });
   return (
     <>
-      {POSTS.map((post) => (
+      {[...dbPosts, ...POSTS].map((post) => (
         <PostCard key={post.id} post={post} onOpenUser={onOpenUser} />
       ))}
     </>
@@ -1323,7 +1387,8 @@ function ChatThread({ chat, onBack }: { chat: Chat; onBack: () => void }) {
 function ProfilePage() {
   const [grid, setGrid] = useState<"posts" | "saved">("posts");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const username = "kurbati.creator";
+  const { data: me } = useMyProfile();
+  const username = me?.username ?? "";
   return (
     <div className="flex flex-col">
       {/* Profile header — username left, settings gear right */}
