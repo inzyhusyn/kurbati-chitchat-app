@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      follows: {
+        Row: {
+          created_at: string
+          follower_id: string
+          target_username: string
+        }
+        Insert: {
+          created_at?: string
+          follower_id: string
+          target_username: string
+        }
+        Update: {
+          created_at?: string
+          follower_id?: string
+          target_username?: string
+        }
+        Relationships: []
+      }
+      post_likes: {
+        Row: {
+          created_at: string
+          post_key: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_key: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       posts: {
         Row: {
           audience: string
