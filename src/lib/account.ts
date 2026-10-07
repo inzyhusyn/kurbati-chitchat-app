@@ -29,7 +29,7 @@ export async function ensureProfile(): Promise<Profile> {
   if (existing) return existing;
 
   const meta = user.user_metadata ?? {};
-  const base = baseUsername(user.email, meta.username);
+  const base = baseUsername(user.email, meta['username']);
   for (let i = 0; i < 5; i++) {
     const username = i === 0 ? base : `${base}${Math.floor(Math.random() * 9000 + 1000)}`;
     const { data, error } = await supabase
@@ -37,8 +37,8 @@ export async function ensureProfile(): Promise<Profile> {
       .insert({
         id: user.id,
         username,
-        display_name: meta.full_name || meta.name || username,
-        avatar_url: meta.avatar_url || meta.picture || null,
+        display_name: meta['full_name'] || meta['name'] || username,
+        avatar_url: meta['avatar_url'] || meta['picture'] || null,
       })
       .select("id, username, display_name, avatar_url, bio, is_private")
       .single();
