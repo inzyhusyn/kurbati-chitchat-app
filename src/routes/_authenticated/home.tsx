@@ -32,6 +32,7 @@ import { CreatePostFlow } from "@/components/create-post-flow";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, persistMedia } from "@/lib/account";
+import { Button } from "@/components/ui/button";
 
 
 export const Route = createFileRoute("/_authenticated/home")({
@@ -702,7 +703,9 @@ function PostCard({
 }) {
   const like = useLike(String(post.id));
   const liked = like.liked;
-  const { setFollowing } = useFollow(post.user);
+  const { following, isReady, isPending, setFollowing } = useFollow(post.user);
+  const { data: myProfile } = useMyProfile();
+  const canFollow = !!myProfile && myProfile.username !== post.user && isReady;
   const [saved, setSaved] = useState(false);
   const [popping, setPopping] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
@@ -768,11 +771,12 @@ function PostCard({
   return (
     <article className="border-b border-border">
       <div className="flex items-center justify-between px-4 py-3">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
         <button
           type="button"
           aria-label={`Open ${post.user}'s profile`}
           onClick={() => onOpenUser(post.user)}
-          className="flex items-center gap-3 text-left transition active:scale-[0.98]"
+          className="flex min-w-0 items-center gap-3 text-left transition active:scale-[0.98]"
         >
           <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
             <img
@@ -781,13 +785,27 @@ function PostCard({
               className="h-full w-full rounded-[9px] border-2 border-black object-cover"
             />
           </div>
-          <div className="leading-tight">
-            <span className="text-sm font-semibold">{post.user}</span>
+          <div className="min-w-0 leading-tight">
+            <span className="block truncate text-sm font-semibold">{post.user}</span>
             {post.location && (
               <p className="text-xs text-muted-foreground">{post.location}</p>
             )}
           </div>
         </button>
+        {canFollow && !following && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            aria-label={`Follow ${post.user}`}
+            disabled={isPending}
+            onClick={() => setFollowing(true)}
+            className="shrink-0 px-2 text-sm font-semibold text-foreground"
+          >
+            Follow
+          </Button>
+        )}
+        </div>
         <button
           type="button"
           aria-label="Post options"
@@ -936,15 +954,14 @@ function PostCard({
               flash("Report submitted");
             }}
           />
-          <SheetAction
-            icon={<UserMinus className="h-5 w-5" />}
-            label={`Unfollow ${post.user}`}
+          {canFollow && !isPending && <SheetAction
+            icon={following ? <UserMinus className="h-5 w-5" /> : <UserPlus className="h-5 w-5" />}
+            label={`${following ? "Unfollow" : "Follow"} ${post.user}`}
             onClick={() => {
               setSheet(null);
-              setFollowing(false);
-              flash(`Unfollowed ${post.user}`);
+              setFollowing(!following);
             }}
-          />
+          />}
           <SheetAction
             icon={<EyeOff className="h-5 w-5" />}
             label="Hide"
