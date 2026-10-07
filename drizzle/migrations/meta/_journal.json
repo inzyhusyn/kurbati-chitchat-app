@@ -15,6 +15,13 @@
       "when": 1788920941291,
       "tag": "0001_auth_profiles_stories",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791341742603,
+      "tag": "0002_migration",
+      "breakpoints": true
     }
   ]
 }

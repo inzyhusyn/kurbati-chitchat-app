@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useLike, useFollow } from "@/lib/social";
 import { useEffect, useRef, useState } from "react";
 import {
   Home,
@@ -699,7 +700,9 @@ function PostCard({
   post: Post;
   onOpenUser: (username: string) => void;
 }) {
-  const [liked, setLiked] = useState(false);
+  const like = useLike(String(post.id));
+  const liked = like.liked;
+  const { setFollowing } = useFollow(post.user);
   const [saved, setSaved] = useState(false);
   const [popping, setPopping] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
@@ -708,7 +711,7 @@ function PostCard({
   const [toast, setToast] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
-  const likeCount = post.likes + (liked ? 1 : 0);
+  const likeCount = post.likes + like.count;
 
   const flash = (msg: string) => {
     setToast(msg);
@@ -716,7 +719,7 @@ function PostCard({
   };
 
   const toggleLike = () => {
-    setLiked((v) => !v);
+    like.setLiked(!liked);
     if (!liked) {
       setPopping(true);
       window.setTimeout(() => setPopping(false), 320);
@@ -727,7 +730,7 @@ function PostCard({
   const doubleTapLike = () => {
     setBurstKey((k) => k + 1);
     if (!liked) {
-      setLiked(true);
+      like.setLiked(true);
       setPopping(true);
       window.setTimeout(() => setPopping(false), 320);
     }
@@ -938,6 +941,7 @@ function PostCard({
             label={`Unfollow ${post.user}`}
             onClick={() => {
               setSheet(null);
+              setFollowing(false);
               flash(`Unfollowed ${post.user}`);
             }}
           />
@@ -1513,7 +1517,7 @@ function UserProfilePage({
   username: string;
   onClose: () => void;
 }) {
-  const [following, setFollowing] = useState(false);
+  const { following, setFollowing } = useFollow(username);
   const post = POSTS.find((p) => p.user === username);
   const story = STORIES.find((s) => s.username === username);
   const avatar =
@@ -1564,7 +1568,7 @@ function UserProfilePage({
         <div className="mb-4 flex gap-2">
           <button
             type="button"
-            onClick={() => setFollowing((v) => !v)}
+            onClick={() => setFollowing(!following)}
             className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
               following
                 ? "border border-border bg-muted text-foreground hover:bg-accent"
