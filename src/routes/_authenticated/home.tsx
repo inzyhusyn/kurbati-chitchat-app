@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useLike, useFollow } from "@/lib/social";
 import { useEffect, useRef, useState } from "react";
 import {
   Home,
