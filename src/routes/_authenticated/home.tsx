@@ -668,7 +668,7 @@ function HomeFeedPosts({
           img: p.media_url,
           caption: p.caption,
           likes: 0,
-          location: p.location ?? undefined,
+          ...(p.location ? { location: p.location } : {}),
           hideCounts: p.hide_counts,
           commentsOff: p.comments_off,
         };
