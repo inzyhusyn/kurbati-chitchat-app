@@ -90,5 +90,10 @@ export function useFollow(username: string) {
     onError: (_e, _v, ctx) => qc.setQueryData(key, ctx?.prev ?? false),
     onSettled: () => qc.invalidateQueries({ queryKey: key }),
   });
-  return { following: q.data ?? false, setFollowing: (v: boolean) => m.mutate(v) };
+  return {
+    following: q.data ?? false,
+    isReady: q.isSuccess,
+    isPending: m.isPending,
+    setFollowing: (v: boolean) => m.mutate(v),
+  };
 }
