@@ -319,58 +319,91 @@ function Toast({ message }: { message: string }) {
 /* 1. HOME FEED                                                      */
 /* ---------------------------------------------------------------- */
 
-type Story = { id: number; name: string; username: string; img: string; you?: boolean };
-
-const STORIES: Story[] = [
-  { id: 1, name: "Your Story", username: "you", img: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=160&q=80", you: true },
-  { id: 2, name: "Aarav", username: "aarav_official", img: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=160&q=80" },
-  { id: 3, name: "Sanya", username: "sanya.k", img: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=160&q=80" },
-  { id: 4, name: "Kabir", username: "kabir.frames", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=160&q=80" },
-  { id: 5, name: "Zoya", username: "zoya_design", img: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=160&q=80" },
-  { id: 6, name: "Rey", username: "rey.moves", img: "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=160&q=80" },
-];
+type Story = { id: string; name: string; username: string; img: string | null; media: string; mediaType: string; you?: boolean };
 
 function HomeFeed({ onOpenUser }: { onOpenUser: (username: string) => void }) {
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const { data: me } = useMyProfile();
 
-  const others = STORIES.filter((s) => !s.you);
+  const { data: others = [] } = useQuery({
+    queryKey: ["stories", me?.id],
+    enabled: !!me,
+    queryFn: async (): Promise<Story[]> => {
+      const { data, error } = await supabase
+        .from("stories")
+        .select("id, user_id, author_username, media_url, media_type")
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false })
+        .limit(100);
+      if (error) throw error;
+      const ids = [...new Set(data.map((s) => s.user_id))];
+      const { data: profs } = ids.length
+        ? await supabase.from("profiles").select("id, username, display_name, avatar_url").in("id", ids)
+        : { data: [] as { id: string; username: string; display_name: string; avatar_url: string | null }[] };
+      const byId = new Map((profs ?? []).map((p) => [p.id, p]));
+      return data.map((s) => {
+        const p = byId.get(s.user_id);
+        const username = p?.username ?? s.author_username;
+        return {
+          id: s.id,
+          name: s.user_id === me!.id ? "Your story" : username,
+          username,
+          img: p?.avatar_url ?? null,
+          media: s.media_url,
+          mediaType: s.media_type,
+        };
+      });
+    },
+  });
+
+  const mine = others.filter((s) => s.username === me?.username);
+  const rest = others.filter((s) => s.username !== me?.username);
+  // One tray bubble per user (latest story first)
+  const trayUsers = [...new Map(rest.map((s) => [s.username, s])).values()];
+  const viewList = viewerIndex === -1 ? mine : rest;
 
   return (
     <div className="flex flex-col">
-      {/* Stories Bar */}
       <div className="no-scrollbar flex gap-4 overflow-x-auto border-b border-border px-4 py-3">
-        {STORIES.map((story) => (
-          <div
-            key={story.id}
-            className="flex flex-shrink-0 flex-col items-center"
+        <div className="flex flex-shrink-0 flex-col items-center">
+          <button
+            type="button"
+            aria-label={mine.length ? "View your story" : "Add to your story"}
+            onClick={() => (mine.length ? setViewerIndex(-1) : setUploadOpen(true))}
+            className="cursor-pointer active:scale-95"
           >
+            <div className="relative">
+              <div className={`h-16 w-16 overflow-hidden rounded-[18px] p-[2px] ${mine.length ? "story-ring" : "bg-muted"}`}>
+                <div className="h-full w-full overflow-hidden rounded-[16px] border-2 border-black">
+                  <Avatar src={me?.avatar_url} alt="Your story" />
+                </div>
+              </div>
+              <span
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setUploadOpen(true);
+                }}
+                className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-[7px] border-2 border-black bg-white text-black"
+              >
+                <Plus className="h-3 w-3" />
+              </span>
+            </div>
+          </button>
+          <span className="mt-1 max-w-[64px] truncate text-xs text-foreground/70">Your story</span>
+        </div>
+        {trayUsers.map((story) => (
+          <div key={story.username} className="flex flex-shrink-0 flex-col items-center">
             <button
               type="button"
-              aria-label={story.you ? "Add to your story" : `View ${story.name}'s story`}
-              onClick={() => {
-                if (story.you) setUploadOpen(true);
-                else setViewerIndex(others.findIndex((o) => o.id === story.id));
-              }}
+              aria-label={`View ${story.name}'s story`}
+              onClick={() => setViewerIndex(rest.findIndex((o) => o.username === story.username))}
               className="cursor-pointer active:scale-95"
             >
-              <div className="relative">
-                <div
-                  className={`h-16 w-16 overflow-hidden rounded-[18px] p-[2px] ${
-                    story.you ? "bg-muted" : "story-ring"
-                  }`}
-                >
-                  <img
-                    src={story.img}
-                    alt={story.name}
-                    className="h-full w-full rounded-[16px] border-2 border-black object-cover"
-                  />
+              <div className="story-ring h-16 w-16 overflow-hidden rounded-[18px] p-[2px]">
+                <div className="h-full w-full overflow-hidden rounded-[16px] border-2 border-black">
+                  <Avatar src={story.img} alt={story.name} />
                 </div>
-                {story.you && (
-                  <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-[7px] border-2 border-black bg-white text-black">
-                    <Plus className="h-3 w-3" />
-                  </span>
-                )}
               </div>
             </button>
             <button
@@ -387,10 +420,10 @@ function HomeFeed({ onOpenUser }: { onOpenUser: (username: string) => void }) {
 
       <HomeFeedPosts onOpenUser={onOpenUser} />
 
-      {viewerIndex !== null && (
+      {viewerIndex !== null && viewList.length > 0 && (
         <StoryViewer
-          stories={others}
-          startIndex={viewerIndex}
+          stories={viewList}
+          startIndex={Math.max(0, viewerIndex)}
           onOpenUser={(u) => {
             setViewerIndex(null);
             onOpenUser(u);
@@ -602,41 +635,13 @@ type Post = {
   hideCounts?: boolean;
   commentsOff?: boolean;
   user: string;
-  avatar: string;
+  avatar: string | null;
   img: string;
+  mediaType?: string;
   caption: string;
   likes: number;
   location?: string;
 };
-
-const POSTS: Post[] = [
-  {
-    id: 1,
-    user: "aarav_official",
-    avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=80&q=80",
-    img: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=900&q=80",
-    caption: "Exploring the deep dark aesthetics of code and design ✨",
-    likes: 1245,
-    location: "Midnight Studio",
-  },
-  {
-    id: 2,
-    user: "zoya_design",
-    avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=80&q=80",
-    img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=900&q=80",
-    caption: "Warm light, cold code. Late night build sessions 🚀 #kurbati",
-    likes: 892,
-    location: "Bengaluru",
-  },
-  {
-    id: 3,
-    user: "kabir.frames",
-    avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=80&q=80",
-    img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=900&q=80",
-    caption: "Monochrome hours. The desk where everything ships.",
-    likes: 534,
-  },
-];
 
 function formatCount(n: number) {
   return n.toLocaleString("en-US");
@@ -647,12 +652,13 @@ function HomeFeedPosts({
 }: {
   onOpenUser: (username: string) => void;
 }) {
-  const { data: dbPosts = [] } = useQuery({
+  const { data: dbPosts = [], isSuccess } = useQuery({
     queryKey: ["feed"],
     queryFn: async (): Promise<Post[]> => {
       const { data, error } = await supabase
         .from("posts")
-        .select("id, user_id, author_username, media_url, caption, location, hide_counts, comments_off")
+        .select("id, user_id, author_username, media_url, media_type, caption, location, hide_counts, comments_off")
+        .not("user_id", "is", null)
         .order("created_at", { ascending: false })
         .limit(50);
       if (error) throw error;
@@ -666,8 +672,9 @@ function HomeFeedPosts({
         return {
           id: p.id,
           user: prof?.username ?? p.author_username,
-          avatar: prof?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(prof?.username ?? p.author_username)}`,
+          avatar: prof?.avatar_url ?? null,
           img: p.media_url,
+          mediaType: p.media_type,
           caption: p.caption,
           likes: 0,
           ...(p.location ? { location: p.location } : {}),
@@ -677,9 +684,16 @@ function HomeFeedPosts({
       });
     },
   });
+  if (isSuccess && dbPosts.length === 0) {
+    return (
+      <p className="px-6 py-16 text-center text-sm text-muted-foreground">
+        No posts yet. Follow people or tap + to share your first post.
+      </p>
+    );
+  }
   return (
     <>
-      {[...dbPosts, ...POSTS].map((post) => (
+      {dbPosts.map((post) => (
         <PostCard key={post.id} post={post} onOpenUser={onOpenUser} />
       ))}
     </>
@@ -687,12 +701,6 @@ function HomeFeedPosts({
 }
 
 type Comment = { id: number; user: string; text: string; time: string };
-
-const SEED_COMMENTS: Comment[] = [
-  { id: 1, user: "zoya_design", text: "This palette is unreal 🔥", time: "2h" },
-  { id: 2, user: "kabir.frames", text: "Deep dark done right.", time: "1h" },
-  { id: 3, user: "rohan.dev", text: "Drop the preset please!", time: "42m" },
-];
 
 function PostCard({
   post,
@@ -710,7 +718,7 @@ function PostCard({
   const [popping, setPopping] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
   const [sheet, setSheet] = useState<null | "comments" | "share" | "menu">(null);
-  const [comments, setComments] = useState<Comment[]>(SEED_COMMENTS);
+  const [comments, setComments] = useState<Comment[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -1018,11 +1026,7 @@ function CommentsSheet({
                 onClick={() => onOpenUser(c.user)}
                 className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-[10px] bg-muted"
               >
-                <img
-                  src={`https://i.pravatar.cc/64?u=${c.user}`}
-                  alt={c.user}
-                  className="h-full w-full object-cover"
-                />
+                <Avatar alt={c.user} />
               </button>
               <div className="leading-snug">
                 <p className="text-sm">
@@ -1075,50 +1079,11 @@ function NotificationsSheet({
   onClose: () => void;
   onOpenUser: (username: string) => void;
 }) {
-  const items = [
-    { id: 1, user: "zoya_design", text: "liked your post", time: "2m", follow: false },
-    { id: 2, user: "rohan.dev", text: "started following you", time: "18m", follow: true },
-    { id: 3, user: "kabir.frames", text: "commented: Deep dark done right.", time: "1h", follow: false },
-    { id: 4, user: "sanya.k", text: "mentioned you in a story", time: "5h", follow: false },
-  ];
+  void onOpenUser;
   return (
     <BottomSheet title="Activity" onClose={onClose} heightClass="max-h-[80%]">
       <div className="px-4 py-1">
-        {items.map((n) => (
-          <div key={n.id} className="flex items-center gap-3 py-3">
-            <button
-              type="button"
-              aria-label={`Open ${n.user}'s profile`}
-              onClick={() => onOpenUser(n.user)}
-              className="h-10 w-10 overflow-hidden rounded-[12px] bg-muted"
-            >
-              <img
-                src={`https://i.pravatar.cc/80?u=${n.user}`}
-                alt={n.user}
-                className="h-full w-full object-cover"
-              />
-            </button>
-            <p className="flex-1 text-sm leading-snug">
-              <button
-                type="button"
-                onClick={() => onOpenUser(n.user)}
-                className="font-semibold hover:underline"
-              >
-                {n.user}
-              </button>{" "}
-              {n.text}{" "}
-              <span className="text-muted-foreground">{n.time}</span>
-            </p>
-            {n.follow && (
-              <button
-                type="button"
-                className="flex items-center gap-1 rounded-lg bg-white px-3 py-1.5 text-xs font-semibold text-black"
-              >
-                <UserPlus className="h-3 w-3" /> Follow
-              </button>
-            )}
-          </div>
-        ))}
+        <p className="py-10 text-center text-sm text-muted-foreground">No activity yet.</p>
       </div>
     </BottomSheet>
   );
@@ -1127,33 +1092,61 @@ function NotificationsSheet({
 /* ---------------------------------------------------------------- */
 /* 2. EXPLORE / SEARCH                                               */
 /* ---------------------------------------------------------------- */
-function ExplorePage() {
-  const seeds = [
-    "kurbati1", "kurbati2", "kurbati3", "kurbati4", "kurbati5", "kurbati6",
-    "kurbati7", "kurbati8", "kurbati9", "kurbati10", "kurbati11", "kurbati12",
-  ];
+function ExplorePage({ onOpenUser }: { onOpenUser: (username: string) => void }) {
+  const [q, setQ] = useState("");
+  const people = usePeople();
+  const { data: posts = [] } = useQuery({
+    queryKey: ["feed", "explore"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, media_url, media_type")
+        .order("created_at", { ascending: false })
+        .limit(60);
+      if (error) throw error;
+      return data;
+    },
+  });
+  const term = q.trim().toLowerCase();
+  const matches = term
+    ? people.filter((p) => p.username.toLowerCase().includes(term) || p.display_name.toLowerCase().includes(term))
+    : [];
   return (
     <div className="p-4">
       <div className="mb-4 flex items-center gap-2 rounded-xl border border-border bg-muted px-3 py-2.5 text-muted-foreground focus-within:border-primary focus-within:ring-1 focus-within:ring-ring">
         <Search className="h-4 w-4" />
         <input
           type="text"
-          placeholder="Search users or tags..."
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search users..."
           className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground"
         />
       </div>
-      <div className="grid grid-cols-3 gap-1">
-        {seeds.map((s) => (
-          <div key={s} className="h-32 overflow-hidden bg-muted">
-            <img
-              src={`https://picsum.photos/seed/${s}/300/300`}
-              alt="grid"
-              className="h-full w-full object-cover transition hover:scale-105"
-              loading="lazy"
-            />
-          </div>
-        ))}
-      </div>
+      {term ? (
+        <div>
+          {matches.length === 0 && <p className="py-8 text-center text-sm text-muted-foreground">No users found.</p>}
+          {matches.map((p) => (
+            <button key={p.id} type="button" onClick={() => onOpenUser(p.username)} className="flex w-full items-center gap-3 rounded-lg px-2 py-2 text-left hover:bg-muted/60">
+              <div className="h-10 w-10 overflow-hidden rounded-[12px]"><Avatar src={p.avatar_url} alt={p.username} /></div>
+              <div className="leading-tight">
+                <p className="text-sm font-semibold">{p.username}</p>
+                <p className="text-xs text-muted-foreground">{p.display_name}</p>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : posts.length === 0 ? (
+        <p className="py-16 text-center text-sm text-muted-foreground">Nothing to explore yet.</p>
+      ) : (
+        <div className="grid grid-cols-3 gap-1">
+          {posts.map((p) => (
+            <div key={p.id} className="h-32 overflow-hidden bg-muted">
+              <MediaThumb src={p.media_url} type={p.media_type} />
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1161,108 +1154,45 @@ function ExplorePage() {
 /* ---------------------------------------------------------------- */
 /* 3. REELS                                                          */
 /* ---------------------------------------------------------------- */
-type Reel = {
-  id: number;
-  handle: string;
-  img: string;
-  caption: string;
-  likes: string;
-};
-
-const REELS: Reel[] = [
-  {
-    id: 1,
-    handle: "@zoya_design",
-    img: "https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=900&q=80",
-    caption: "Vibing with the late night build sessions 🚀 #kurbati",
-    likes: "8.2K",
-  },
-  {
-    id: 2,
-    handle: "@aarav_official",
-    img: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=900&q=80",
-    caption: "Desk reset for the new sprint 🖥️ #devlife",
-    likes: "12.4K",
-  },
-  {
-    id: 3,
-    handle: "@kabir.frames",
-    img: "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=900&q=80",
-    caption: "Slow shutter, fast mind ✨",
-    likes: "3.9K",
-  },
-];
-
 function ReelsPage({
   onOpenUser,
 }: {
   onOpenUser: (username: string) => void;
 }) {
-  const [liked, setLiked] = useState<Record<number, boolean>>({});
+  const { data: reels = [], isSuccess } = useQuery({
+    queryKey: ["feed", "reels"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("posts")
+        .select("id, author_username, media_url, media_type, caption")
+        .or("post_kind.eq.reel,media_type.eq.video")
+        .order("created_at", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data;
+    },
+  });
+  if (isSuccess && reels.length === 0) {
+    return <p className="grid h-full place-items-center p-8 text-center text-sm text-muted-foreground">No reels yet. Share a video to create the first one.</p>;
+  }
   return (
     <div className="no-scrollbar flex h-full snap-y snap-mandatory flex-col overflow-y-auto">
-      {REELS.map((reel) => {
-        const isLiked = liked[reel.id];
-        return (
-          <section
-            key={reel.id}
-            className="relative h-[calc(100vh-7.5rem)] flex-shrink-0 snap-start bg-black"
-          >
-            <img
-              src={reel.img}
-              alt={reel.handle}
-              className="absolute inset-0 h-full w-full object-cover opacity-90"
-              loading="lazy"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-
-            {/* Right action rail */}
-            <div className="absolute bottom-24 right-3 z-10 flex flex-col items-center gap-5">
-              <button
-                type="button"
-                aria-label="Like reel"
-                onClick={() =>
-                  setLiked((s) => ({ ...s, [reel.id]: !s[reel.id] }))
-                }
-              >
-                <Heart
-                  className={`h-7 w-7 transition active:scale-90 ${
-                    isLiked ? "fill-destructive text-destructive" : "text-white"
-                  }`}
-                />
-              </button>
-              <span className="text-xs text-white/90">{reel.likes}</span>
-              <MessageSquare className="h-7 w-7 cursor-pointer text-white" />
-              <Send className="h-7 w-7 cursor-pointer text-white" />
-              <Bookmark className="h-7 w-7 cursor-pointer text-white" />
-            </div>
-
-            <div className="absolute bottom-6 left-4 z-10 pr-16">
-              <div className="mb-2 flex items-center gap-2">
-                <button
-                  type="button"
-                  aria-label={`Open ${reel.handle}'s profile`}
-                  onClick={() => onOpenUser(reel.handle.replace("@", ""))}
-                  className="flex items-center gap-2"
-                >
-                  <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
-                    <img
-                      src={`https://i.pravatar.cc/80?u=${reel.handle}`}
-                      alt={reel.handle}
-                      className="h-full w-full rounded-[9px] border-2 border-black object-cover"
-                    />
-                  </div>
-                  <h3 className="text-base font-semibold text-white">{reel.handle}</h3>
-                </button>
-                <button className="rounded-md border border-white/40 px-2 py-0.5 text-xs font-semibold text-white">
-                  Follow
-                </button>
-              </div>
-              <p className="max-w-xs text-sm text-white/90">{reel.caption}</p>
-            </div>
-          </section>
-        );
-      })}
+      {reels.map((reel) => (
+        <section key={reel.id} className="relative h-[calc(100vh-7.5rem)] flex-shrink-0 snap-start bg-black">
+          {reel.media_type === "video" ? (
+            <video src={reel.media_url} className="absolute inset-0 h-full w-full object-cover" autoPlay muted loop playsInline />
+          ) : (
+            <img src={reel.media_url} alt={reel.author_username} className="absolute inset-0 h-full w-full object-cover" loading="lazy" />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
+          <div className="absolute bottom-6 left-4 z-10 pr-16">
+            <button type="button" onClick={() => onOpenUser(reel.author_username)} className="mb-2 text-base font-semibold text-white">
+              @{reel.author_username}
+            </button>
+            <p className="max-w-xs text-sm text-white/90">{reel.caption}</p>
+          </div>
+        </section>
+      ))}
     </div>
   );
 }
@@ -1278,15 +1208,9 @@ type Chat = {
   online: boolean;
 };
 
-const CHATS: Chat[] = [
-  { id: 1, name: "Rohan Sharma", msg: "Bhai project kahan tak pahuncha?", time: "2m", online: true },
-  { id: 2, name: "Priya Verma", msg: "Check out the new dark UI concept.", time: "1h", online: true },
-  { id: 3, name: "Aarav Singh", msg: "Reel ready to ship 🔥", time: "3h", online: false },
-  { id: 4, name: "Zoya K.", msg: "Typing...", time: "1d", online: false },
-];
-
 function ChatPage() {
   const [openChat, setOpenChat] = useState<Chat | null>(null);
+  const CHATS: Chat[] = [];
 
   if (openChat) {
     return <ChatThread chat={openChat} onBack={() => setOpenChat(null)} />;
@@ -1295,6 +1219,7 @@ function ChatPage() {
   return (
     <div className="flex flex-col p-4">
       <h2 className="mb-4 text-xl font-bold">Messages</h2>
+      {CHATS.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">No messages yet.</p>}
       {CHATS.map((chat) => (
         <button
           type="button"
@@ -1304,23 +1229,12 @@ function ChatPage() {
           className="flex cursor-pointer items-center justify-between rounded-xl px-2 py-3 text-left transition hover:bg-muted/60 active:scale-[0.99]"
         >
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-muted font-bold text-white">
-                {chat.name[0]}
-              </div>
-              {chat.online && (
-                <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-[4px] border-2 border-black bg-emerald-500" />
-              )}
+            <div className="grid h-12 w-12 place-items-center rounded-[14px] bg-muted font-bold text-white">
+              {chat.name[0]}
             </div>
             <div className="leading-tight">
               <h4 className="text-sm font-semibold">{chat.name}</h4>
-              <p
-                className={`text-xs ${
-                  chat.msg === "Typing..." ? "text-primary" : "text-muted-foreground"
-                }`}
-              >
-                {chat.msg}
-              </p>
+              <p className="text-xs text-muted-foreground">{chat.msg}</p>
             </div>
           </div>
           <span className="text-xs text-muted-foreground">{chat.time}</span>
@@ -1333,11 +1247,7 @@ function ChatPage() {
 type Message = { id: number; text: string; mine: boolean };
 
 function ChatThread({ chat, onBack }: { chat: Chat; onBack: () => void }) {
-  const [messages, setMessages] = useState<Message[]>([
-    { id: 1, text: chat.msg, mine: false },
-    { id: 2, text: "Almost done — shipping the dark UI tonight.", mine: true },
-    { id: 3, text: "Let's go 🔥", mine: false },
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [value, setValue] = useState("");
 
   const send = (e: React.FormEvent) => {
@@ -1418,13 +1328,14 @@ function ProfilePage() {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("posts")
-        .select("id, media_url")
+        .select("id, media_url, media_type")
         .eq("user_id", me!.id)
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data;
     },
   });
+  const myCounts = useFollowCounts(me?.username, me?.id);
   return (
     <div className="flex flex-col">
       {/* Profile header — username left, settings gear right */}
@@ -1442,12 +1353,7 @@ function ProfilePage() {
       <div className="flex flex-col p-4">
       <div className="mb-4 flex items-center justify-between">
         <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
-
-          <img
-            src={me?.avatar_url || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(username || "K")}`}
-            alt={`${username} profile picture`}
-            className="h-full w-full object-cover"
-          />
+          <Avatar src={me?.avatar_url} alt={`${username} profile picture`} />
         </div>
         <div className="flex gap-6 text-center">
           <div>
@@ -1455,11 +1361,11 @@ function ProfilePage() {
             <span className="text-xs text-muted-foreground">Posts</span>
           </div>
           <div>
-            <span className="block font-bold">1.4K</span>
+            <span className="block font-bold">{myCounts.followers}</span>
             <span className="text-xs text-muted-foreground">Followers</span>
           </div>
           <div>
-            <span className="block font-bold">280</span>
+            <span className="block font-bold">{myCounts.following}</span>
             <span className="text-xs text-muted-foreground">Following</span>
           </div>
         </div>
@@ -1500,14 +1406,12 @@ function ProfilePage() {
         {grid === "posts" && myPosts.length === 0 && (
           <p className="col-span-3 py-10 text-center text-sm text-muted-foreground">No posts yet — tap + to share one.</p>
         )}
-        {(grid === "posts" ? myPosts.map((p) => ({ k: p.id, src: p.media_url })) : [1, 2, 3, 4, 5, 6].map((i) => ({ k: String(i), src: `https://picsum.photos/seed/saved${i}/300/300` }))).map((item) => (
-          <div key={item.k} className="h-28 overflow-hidden bg-muted">
-            <img
-              src={item.src}
-              alt="user post"
-              className="h-full w-full object-cover transition hover:scale-105"
-              loading="lazy"
-            />
+        {grid === "saved" && (
+          <p className="col-span-3 py-10 text-center text-sm text-muted-foreground">Nothing saved yet.</p>
+        )}
+        {grid === "posts" && myPosts.map((p) => (
+          <div key={p.id} className="h-28 overflow-hidden bg-muted">
+            <MediaThumb src={p.media_url} type={p.media_type} />
           </div>
         ))}
       </div>
@@ -1535,11 +1439,25 @@ function UserProfilePage({
   onClose: () => void;
 }) {
   const { following, setFollowing } = useFollow(username);
-  const post = POSTS.find((p) => p.user === username);
-  const story = STORIES.find((s) => s.username === username);
-  const avatar =
-    post?.avatar ?? story?.img ?? `https://i.pravatar.cc/200?u=${username}`;
-  const displayName = story?.name ?? username.replace(/[._]/g, " ");
+  const { data: me } = useMyProfile();
+  const { data } = useQuery({
+    queryKey: ["user-profile", username],
+    queryFn: async () => {
+      const { data: prof } = await supabase
+        .from("profiles")
+        .select("id, username, display_name, avatar_url, bio")
+        .eq("username", username)
+        .maybeSingle();
+      const posts = prof
+        ? (await supabase.from("posts").select("id, media_url, media_type").eq("user_id", prof.id).order("created_at", { ascending: false })).data ?? []
+        : [];
+      return { prof, posts };
+    },
+  });
+  const counts = useFollowCounts(username, data?.prof?.id);
+  const prof = data?.prof;
+  const posts = data?.posts ?? [];
+  const isMe = me?.username === username;
 
   return (
     <div className="fade-in absolute inset-0 z-[85] flex flex-col bg-black">
@@ -1551,70 +1469,85 @@ function UserProfilePage({
       </div>
 
       <div className="no-scrollbar flex-1 overflow-y-auto p-4">
-        <div className="mb-4 flex items-center justify-between">
-          <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
-            <img
-              src={avatar}
-              alt={username}
-              className="h-full w-full object-cover"
-            />
-          </div>
-          <div className="flex gap-6 text-center">
-            <div>
-              <span className="block font-bold">
-                {post ? 24 : 9}
-              </span>
-              <span className="text-xs text-muted-foreground">Posts</span>
+        {data && !prof ? (
+          <p className="py-16 text-center text-sm text-muted-foreground">This account doesn't exist.</p>
+        ) : (
+          <>
+            <div className="mb-4 flex items-center justify-between">
+              <div className="h-20 w-20 overflow-hidden rounded-[22px] border-2 border-white/70 bg-muted">
+                <Avatar src={prof?.avatar_url} alt={username} />
+              </div>
+              <div className="flex gap-6 text-center">
+                <div>
+                  <span className="block font-bold">{posts.length}</span>
+                  <span className="text-xs text-muted-foreground">Posts</span>
+                </div>
+                <div>
+                  <span className="block font-bold">{counts.followers}</span>
+                  <span className="text-xs text-muted-foreground">Followers</span>
+                </div>
+                <div>
+                  <span className="block font-bold">{counts.following}</span>
+                  <span className="text-xs text-muted-foreground">Following</span>
+                </div>
+              </div>
             </div>
-            <div>
-              <span className="block font-bold">3.2K</span>
-              <span className="text-xs text-muted-foreground">Followers</span>
-            </div>
-            <div>
-              <span className="block font-bold">412</span>
-              <span className="text-xs text-muted-foreground">Following</span>
-            </div>
-          </div>
-        </div>
 
-        <h3 className="font-bold capitalize">{displayName}</h3>
-        <p className="mb-4 text-sm text-foreground/80">
-          {post?.caption ?? "Sharing moments on Kurbati Chitchat 🌙"}
-        </p>
+            <h3 className="font-bold">{prof?.display_name || username}</h3>
+            {prof?.bio && <p className="mb-4 text-sm text-foreground/80">{prof.bio}</p>}
 
-        <div className="mb-4 flex gap-2">
-          <button
-            type="button"
-            onClick={() => setFollowing(!following)}
-            className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
-              following
-                ? "border border-border bg-muted text-foreground hover:bg-accent"
-                : "bg-white text-black"
-            }`}
-          >
-            {following ? "Following" : "Follow"}
-          </button>
-          <button
-            type="button"
-            className="flex-1 rounded-lg border border-border bg-muted py-2 text-sm font-semibold transition hover:bg-accent"
-          >
-            Message
-          </button>
-        </div>
+            {!isMe && (
+              <div className="my-4 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setFollowing(!following)}
+                  className={`flex-1 rounded-lg py-2 text-sm font-semibold transition ${
+                    following
+                      ? "border border-border bg-muted text-foreground hover:bg-accent"
+                      : "bg-white text-black"
+                  }`}
+                >
+                  {following ? "Following" : "Follow"}
+                </button>
+              </div>
+            )}
 
-        <div className="grid grid-cols-3 gap-1">
-          {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((item) => (
-            <div key={item} className="h-28 overflow-hidden bg-muted">
-              <img
-                src={`https://picsum.photos/seed/${username}${item}/300/300`}
-                alt={`${username} post`}
-                className="h-full w-full object-cover transition hover:scale-105"
-                loading="lazy"
-              />
+            <div className="grid grid-cols-3 gap-1">
+              {posts.length === 0 && (
+                <p className="col-span-3 py-10 text-center text-sm text-muted-foreground">No posts yet.</p>
+              )}
+              {posts.map((p) => (
+                <div key={p.id} className="h-28 overflow-hidden bg-muted">
+                  <MediaThumb src={p.media_url} type={p.media_type} />
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
+          </>
+        )}
       </div>
     </div>
   );
+}
+
+function MediaThumb({ src, type }: { src: string; type: string }) {
+  return type === "video" ? (
+    <video src={src} muted playsInline className="h-full w-full object-cover" />
+  ) : (
+    <img src={src} alt="post" className="h-full w-full object-cover transition hover:scale-105" loading="lazy" />
+  );
+}
+
+function useFollowCounts(username?: string, userId?: string) {
+  const { data } = useQuery({
+    queryKey: ["follow-counts", username, userId],
+    enabled: !!username,
+    queryFn: async () => {
+      const f = await supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("target_username", username!);
+      const g = userId
+        ? await supabase.from("follows").select("target_username", { count: "exact", head: true }).eq("follower_id", userId)
+        : { count: 0 };
+      return { followers: f.count ?? 0, following: g.count ?? 0 };
+    },
+  });
+  return data ?? { followers: 0, following: 0 };
 }
