@@ -134,7 +134,7 @@ function AuthPage() {
           )}
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || (mode === "signup" && usernameStatus !== "available")}
             className="w-full rounded-xl border border-primary py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50"
           >
             {busy ? "Please wait…" : mode === "signup" ? "Sign up" : mode === "forgot" ? "Send reset link" : "Log in"}
