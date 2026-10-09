@@ -703,6 +703,7 @@ function DetailsScreen({
   onDone: () => void;
   notify: (m: string) => void;
 }) {
+  const people = usePeopleNames();
   const [caption, setCaption] = useState("");
   const [pollOpen, setPollOpen] = useState(false);
   const [pollQuestion, setPollQuestion] = useState("");
