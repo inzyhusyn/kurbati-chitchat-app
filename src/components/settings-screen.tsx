@@ -420,6 +420,8 @@ export function SettingsScreen({
   onClose: () => void;
 }) {
   const [stack, setStack] = useState<ScreenKey[]>(["root"]);
+  const PEOPLE = usePeopleNames();
+  const myAvatar = useMyProfile().data?.avatar_url ?? null;
   const [s, setS] = useState<SettingsState>(DEFAULTS);
   const [toast, setToast] = useState<string | null>(null);
   const navigate = useNavigate();
