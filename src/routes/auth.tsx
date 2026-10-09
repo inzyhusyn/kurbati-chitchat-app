@@ -26,6 +26,19 @@ function AuthPage() {
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ type: "error" | "info"; text: string } | null>(null);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+
+  useEffect(() => {
+    if (mode !== "signup") { setUsernameStatus("idle"); return; }
+    const clean = username.toLowerCase().replace(/[^a-z0-9._]/g, "");
+    if (clean.length < 3) { setUsernameStatus("idle"); return; }
+    setUsernameStatus("checking");
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id").eq("username", clean).maybeSingle();
+      setUsernameStatus(data ? "taken" : "available");
+    }, 400);
+    return () => clearTimeout(t);
+  }, [username, mode]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -105,7 +118,12 @@ function AuthPage() {
 
         <form onSubmit={submit} className="space-y-3">
           {mode === "signup" && (
-            <input className={input} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} maxLength={20} />
+            <div>
+              <input className={input} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} maxLength={20} />
+              {usernameStatus === "checking" && <p className="mt-1 text-xs text-muted-foreground">Checking…</p>}
+              {usernameStatus === "taken" && <p className="mt-1 text-xs text-destructive">Username taken</p>}
+              {usernameStatus === "available" && <p className="mt-1 text-xs text-green-500">Username available</p>}
+            </div>
           )}
           <input className={input} type="email" placeholder="Email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           {mode !== "forgot" && (
@@ -116,7 +134,7 @@ function AuthPage() {
           )}
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || (mode === "signup" && usernameStatus !== "available")}
             className="w-full rounded-xl border border-primary py-3 text-sm font-semibold text-primary transition hover:bg-primary/10 disabled:opacity-50"
           >
             {busy ? "Please wait…" : mode === "signup" ? "Sign up" : mode === "forgot" ? "Send reset link" : "Log in"}
