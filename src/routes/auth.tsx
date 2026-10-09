@@ -118,7 +118,12 @@ function AuthPage() {
 
         <form onSubmit={submit} className="space-y-3">
           {mode === "signup" && (
-            <input className={input} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} maxLength={20} />
+            <div>
+              <input className={input} placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} required minLength={3} maxLength={20} />
+              {usernameStatus === "checking" && <p className="mt-1 text-xs text-muted-foreground">Checking…</p>}
+              {usernameStatus === "taken" && <p className="mt-1 text-xs text-destructive">Username taken</p>}
+              {usernameStatus === "available" && <p className="mt-1 text-xs text-green-500">Username available</p>}
+            </div>
           )}
           <input className={input} type="email" placeholder="Email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
           {mode !== "forgot" && (
