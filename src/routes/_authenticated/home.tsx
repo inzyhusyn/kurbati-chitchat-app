@@ -33,6 +33,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useMyProfile, persistMedia } from "@/lib/account";
 import { Button } from "@/components/ui/button";
+import { Avatar } from "@/components/avatar";
+import { usePeople } from "@/lib/people";
 
 
 export const Route = createFileRoute("/_authenticated/home")({
@@ -125,7 +127,7 @@ function Index() {
           }`}
         >
           {activeTab === "home" && <HomeFeed onOpenUser={setViewUser} />}
-          {activeTab === "search" && <ExplorePage />}
+          {activeTab === "search" && <ExplorePage onOpenUser={setViewUser} />}
           {activeTab === "reels" && <ReelsPage onOpenUser={setViewUser} />}
           {activeTab === "chat" && <ChatPage />}
           {activeTab === "profile" && <ProfilePage />}
@@ -486,15 +488,12 @@ function StoryViewer({
           className="flex items-center gap-3"
         >
           <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
-            <img
-              src={story.img}
-              alt={story.name}
-              className="h-full w-full rounded-[9px] border-2 border-black object-cover"
-            />
+            <div className="h-full w-full overflow-hidden rounded-[9px] border-2 border-black">
+              <Avatar src={story.img} alt={story.name} />
+            </div>
           </div>
           <span className="text-sm font-semibold text-white">{story.name}</span>
         </button>
-        <span className="text-xs text-white/60">{index + 1}h</span>
         <button
           type="button"
           aria-label="Close story viewer"
@@ -506,11 +505,11 @@ function StoryViewer({
       </div>
 
       <div className="relative flex-1">
-        <img
-          src={story.img.replace("w=160", "w=900")}
-          alt={story.name}
-          className="h-full w-full object-cover"
-        />
+        {story.mediaType === "video" ? (
+          <video src={story.media} className="h-full w-full object-cover" autoPlay muted playsInline />
+        ) : (
+          <img src={story.media} alt={story.name} className="h-full w-full object-cover" />
+        )}
         <button
           type="button"
           aria-label="Previous story"
@@ -787,11 +786,9 @@ function PostCard({
           className="flex min-w-0 items-center gap-3 text-left transition active:scale-[0.98]"
         >
           <div className="story-ring h-9 w-9 overflow-hidden rounded-[11px] p-[2px]">
-            <img
-              src={post.avatar}
-              alt={post.user}
-              className="h-full w-full rounded-[9px] border-2 border-black object-cover"
-            />
+            <div className="h-full w-full overflow-hidden rounded-[9px] border-2 border-black">
+              <Avatar src={post.avatar} alt={post.user} />
+            </div>
           </div>
           <div className="min-w-0 leading-tight">
             <span className="block truncate text-sm font-semibold">{post.user}</span>
@@ -829,12 +826,11 @@ function PostCard({
         onDoubleClick={doubleTapLike}
         className="relative block h-96 w-full overflow-hidden bg-muted"
       >
-        <img
-          src={post.img}
-          alt="Post content"
-          className="h-full w-full object-cover"
-          loading="lazy"
-        />
+        {post.mediaType === "video" ? (
+          <video src={post.img} className="h-full w-full object-cover" muted loop playsInline autoPlay />
+        ) : (
+          <img src={post.img} alt="Post content" className="h-full w-full object-cover" loading="lazy" />
+        )}
         {burstKey > 0 && (
           <span
             key={burstKey}
