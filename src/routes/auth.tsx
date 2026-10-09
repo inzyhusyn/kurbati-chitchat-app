@@ -26,6 +26,19 @@ function AuthPage() {
   const [username, setUsername] = useState("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ type: "error" | "info"; text: string } | null>(null);
+  const [usernameStatus, setUsernameStatus] = useState<"idle" | "checking" | "available" | "taken">("idle");
+
+  useEffect(() => {
+    if (mode !== "signup") { setUsernameStatus("idle"); return; }
+    const clean = username.toLowerCase().replace(/[^a-z0-9._]/g, "");
+    if (clean.length < 3) { setUsernameStatus("idle"); return; }
+    setUsernameStatus("checking");
+    const t = setTimeout(async () => {
+      const { data } = await supabase.from("profiles").select("id").eq("username", clean).maybeSingle();
+      setUsernameStatus(data ? "taken" : "available");
+    }, 400);
+    return () => clearTimeout(t);
+  }, [username, mode]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
