@@ -291,8 +291,7 @@ function PeoplePicker({
         const inList = selected.includes(p);
         return (
           <div key={p} className="flex items-center gap-3 px-4 py-3">
-            <img
-  XX
+            <div className="h-10 w-10 overflow-hidden rounded-[12px]"><Avatar alt={p} /></div>
             <span className="flex-1 text-sm text-white">{p}</span>
             <button
               type="button"
