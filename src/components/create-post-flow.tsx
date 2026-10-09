@@ -20,6 +20,9 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { persistMedia } from "@/lib/account";
+import { usePeopleNames } from "@/lib/people";
+import { Avatar } from "@/components/avatar";
+import { ImagePlus } from "lucide-react";
 
 /* ---------------------------------------------------------------- data */
 
@@ -28,11 +31,6 @@ const MODES: Mode[] = ["Post", "Story", "Reel", "Live"];
 
 type MediaItem = { id: string; url: string; type: "image" | "video" };
 
-const GALLERY: MediaItem[] = Array.from({ length: 24 }, (_, i) => ({
-  id: `g${i}`,
-  url: `https://picsum.photos/seed/kurbatiroll${i + 1}/600/600`,
-  type: i % 7 === 3 ? ("video" as const) : ("image" as const),
-}));
 
 const FILTERS: { name: string; css: string }[] = [
   { name: "Normal", css: "none" },
@@ -56,15 +54,6 @@ const TRACKS = [
   "Calm Down — Rema",
 ];
 
-const PEOPLE = [
-  "aarav_official",
-  "sanya.k",
-  "kabir.frames",
-  "zoya_design",
-  "rey.moves",
-  "rohan.sharma",
-  "priya.verma",
-];
 
 const LOCATIONS = [
   "Mumbai, India",
@@ -274,7 +263,23 @@ function GalleryPicker({
 }) {
   const [multi, setMulti] = useState(false);
   const cameraRef = useRef<HTMLInputElement>(null);
-  const preview = selected[0] ?? GALLERY[0]!;
+  const pickRef = useRef<HTMLInputElement>(null);
+  const [items, setItems] = useState<MediaItem[]>(selected);
+  const preview = selected[0] ?? items[0];
+  const toItem = (file: File, i: number): MediaItem => ({
+    id: `f-${Date.now()}-${i}`,
+    url: URL.createObjectURL(file),
+    type: file.type.startsWith("video") ? "video" : "image",
+  });
+  const onPickFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []).filter((f) => /^(image|video)\//.test(f.type));
+    e.target.value = "";
+    if (!files.length) return;
+    const added = files.map(toItem);
+    setItems((prev) => [...added, ...prev]);
+    if (files.length > 1 && !multi) setMulti(true);
+    setSelected(files.length > 1 ? added.slice(0, 10) : [added[0]!]);
+  };
 
   const toggle = (item: MediaItem) => {
     if (!multi) {
@@ -290,10 +295,9 @@ function GalleryPicker({
   const onCapture = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = URL.createObjectURL(file);
-    setSelected([
-      { id: `cam-${Date.now()}`, url, type: file.type.startsWith("video") ? "video" : "image" },
-    ]);
+    const item = toItem(file, 0);
+    setItems((prev) => [item, ...prev]);
+    setSelected([item]);
     notify("Captured — tap Next");
   };
 
@@ -318,8 +322,16 @@ function GalleryPicker({
 
       {/* preview */}
       <div className="relative aspect-square w-full shrink-0 bg-[#0b0b0b]">
-        <img src={preview.url} alt="Selected media preview" className="h-full w-full object-cover" />
-        {preview.type === "video" && (
+        {!preview ? (
+          <button type="button" onClick={() => pickRef.current?.click()} className="grid h-full w-full place-items-center text-white/70">
+            <span className="flex flex-col items-center gap-2"><ImagePlus className="h-10 w-10" /><span className="text-sm">Choose photos or videos from your device</span></span>
+          </button>
+        ) : preview.type === "video" ? (
+          <video src={preview.url} className="h-full w-full object-cover" autoPlay muted loop playsInline />
+        ) : (
+          <img src={preview.url} alt="Selected media preview" className="h-full w-full object-cover" />
+        )}
+        {preview?.type === "video" && (
           <span className="absolute bottom-2 right-2 rounded bg-black/70 px-2 py-0.5 text-xs text-white">
             Video
           </span>
@@ -331,10 +343,11 @@ function GalleryPicker({
         <button
           type="button"
           className="flex items-center gap-1 text-sm font-semibold text-white"
-          onClick={() => notify("Recents album")}
+          onClick={() => pickRef.current?.click()}
         >
-          Recents <ChevronDown className="h-4 w-4" />
+          Open gallery <ChevronDown className="h-4 w-4" />
         </button>
+        <input ref={pickRef} type="file" accept="image/*,video/*" multiple className="hidden" onChange={onPickFiles} />
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -373,7 +386,10 @@ function GalleryPicker({
       {/* grid */}
       <div className="no-scrollbar flex-1 overflow-y-auto pb-2">
         <div className="grid grid-cols-4 gap-[2px]">
-          {GALLERY.map((item) => {
+          <button type="button" onClick={() => pickRef.current?.click()} aria-label="Add from device" className="grid aspect-square place-items-center bg-white/5 text-white">
+            <Plus className="h-6 w-6" />
+          </button>
+          {items.map((item) => {
             const idx = selected.findIndex((s) => s.id === item.id);
             return (
               <button
@@ -383,11 +399,13 @@ function GalleryPicker({
                 className="relative aspect-square"
                 aria-label={`Select media ${item.id}`}
               >
-                <img src={item.url} alt="" className="h-full w-full object-cover" />
+                {item.type === "video" ? (
+                  <video src={item.url} muted playsInline className="h-full w-full object-cover" />
+                ) : (
+                  <img src={item.url} alt="" className="h-full w-full object-cover" />
+                )}
                 {item.type === "video" && (
-                  <span className="absolute bottom-1 right-1 text-[10px] font-semibold text-white">
-                    0:15
-                  </span>
+                  <span className="absolute bottom-1 right-1 text-[10px] font-semibold text-white">Video</span>
                 )}
                 {idx >= 0 && (
                   <span className="absolute inset-0 border-2 border-white bg-black/30">
@@ -685,6 +703,7 @@ function DetailsScreen({
   onDone: () => void;
   notify: (m: string) => void;
 }) {
+  const people = usePeopleNames();
   const [caption, setCaption] = useState("");
   const [pollOpen, setPollOpen] = useState(false);
   const [pollQuestion, setPollQuestion] = useState("");
@@ -900,7 +919,7 @@ function DetailsScreen({
       {sheet === "tag" && (
         <Sheet title="Tag people" onClose={() => setSheet(null)}>
           <PeopleList
-            people={PEOPLE}
+            people={people}
             selected={tagged}
             onToggle={(u) =>
               setTagged(tagged.includes(u) ? tagged.filter((t) => t !== u) : [...tagged, u])
@@ -951,7 +970,7 @@ function DetailsScreen({
       {sheet === "custom" && (
         <Sheet title="Custom audience" onClose={() => setSheet(null)}>
           <PeopleList
-            people={PEOPLE}
+            people={people}
             selected={custom}
             onToggle={(u) =>
               setCustom(custom.includes(u) ? custom.filter((c) => c !== u) : [...custom, u])
@@ -990,11 +1009,7 @@ function PeopleList({
           onClick={() => onToggle(u)}
           className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-white hover:bg-white/5"
         >
-          <img
-            src={`https://picsum.photos/seed/${u}/80/80`}
-            alt=""
-            className="h-9 w-9 rounded-[10px] object-cover"
-          />
+          <div className="h-9 w-9 overflow-hidden rounded-[10px]"><Avatar alt={u} /></div>
           <span className="flex-1">{u}</span>
           <span
             className={`grid h-5 w-5 place-items-center rounded-[6px] border ${

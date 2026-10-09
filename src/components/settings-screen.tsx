@@ -69,21 +69,11 @@ type SettingsState = {
   signedOut: boolean;
 };
 
-const PEOPLE = [
-  "aarav_official",
-  "sanya.k",
-  "kabir.frames",
-  "zoya_design",
-  "rey.moves",
-  "rohan.sharma",
-  "priya.verma",
-  "meera_lens",
-];
 
 const DEFAULTS: SettingsState = {
   privateAccount: false,
   contentPrivacy: "all",
-  closeFriends: ["sanya.k", "kabir.frames"],
+  closeFriends: [],
   customAudience: [],
   hideCounts: false,
   hideStoryFrom: [],
@@ -301,11 +291,7 @@ function PeoplePicker({
         const inList = selected.includes(p);
         return (
           <div key={p} className="flex items-center gap-3 px-4 py-3">
-            <img
-              src={`https://i.pravatar.cc/80?u=${p}`}
-              alt={p}
-              className="h-10 w-10 rounded-[12px] object-cover"
-            />
+            <div className="h-10 w-10 overflow-hidden rounded-[12px]"><Avatar alt={p} /></div>
             <span className="flex-1 text-sm text-white">{p}</span>
             <button
               type="button"
@@ -330,20 +316,7 @@ function PeoplePicker({
 }
 
 function Grid({ seed }: { seed: string }) {
-  return (
-    <div className="grid grid-cols-3 gap-1 p-1">
-      {Array.from({ length: 9 }, (_, i) => i + 1).map((i) => (
-        <div key={i} className="h-28 overflow-hidden bg-muted">
-          <img
-            src={`https://picsum.photos/seed/${seed}${i}/300/300`}
-            alt={`${seed} item ${i}`}
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-        </div>
-      ))}
-    </div>
-  );
+  return <p className="px-4 py-12 text-center text-sm text-muted-foreground">No {seed} yet.</p>;
 }
 
 function Tabs({
@@ -434,6 +407,10 @@ const TITLES: Record<ScreenKey, string> = {
   sessions: "Login & sessions",
 };
 
+import { Avatar } from "@/components/avatar";
+import { usePeopleNames } from "@/lib/people";
+import { useMyProfile } from "@/lib/account";
+
 export function SettingsScreen({
   username,
   onClose,
@@ -442,6 +419,8 @@ export function SettingsScreen({
   onClose: () => void;
 }) {
   const [stack, setStack] = useState<ScreenKey[]>(["root"]);
+  const PEOPLE = usePeopleNames();
+  const myAvatar = useMyProfile().data?.avatar_url ?? null;
   const [s, setS] = useState<SettingsState>(DEFAULTS);
   const [toast, setToast] = useState<string | null>(null);
   const navigate = useNavigate();
@@ -508,11 +487,7 @@ export function SettingsScreen({
         {current === "root" && (
           <>
             <div className="flex items-center gap-3 px-4 py-4">
-              <img
-                src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=200&q=80"
-                alt={username}
-                className="h-12 w-12 rounded-[14px] object-cover"
-              />
+<div className="h-12 w-12 overflow-hidden rounded-[14px]"><Avatar src={myAvatar} alt={username} /></div>
               <div>
                 <p className="text-sm font-semibold text-white">{username}</p>
                 <p className="text-xs text-muted-foreground">
@@ -810,21 +785,7 @@ function TabbedGrids({ tabs }: { tabs: string[] }) {
   );
 }
 
-const ACTIVITY: Record<string, { user: string; text: string; when: string }[]> = {
-  Likes: [
-    { user: "aarav_official", text: "You liked a post", when: "2h" },
-    { user: "zoya_design", text: "You liked a reel", when: "1d" },
-    { user: "sanya.k", text: "You liked a photo", when: "3d" },
-  ],
-  Comments: [
-    { user: "kabir.frames", text: "“This light is unreal 🔥”", when: "5h" },
-    { user: "rey.moves", text: "“Sending this to my crew”", when: "2d" },
-  ],
-  Tags: [
-    { user: "priya.verma", text: "Tagged you in a post", when: "6h" },
-    { user: "rohan.sharma", text: "Tagged you in a reel", when: "4d" },
-  ],
-};
+const ACTIVITY: Record<string, { user: string; text: string; when: string }[]> = {};
 
 function ActivityScreen() {
   const [tab, setTab] = useState("Likes");
@@ -834,11 +795,7 @@ function ActivityScreen() {
       <Tabs tabs={["Likes", "Comments", "Tags"]} active={tab} onChange={setTab} />
       {items.map((it, i) => (
         <div key={i} className="flex items-center gap-3 px-4 py-3">
-          <img
-            src={`https://i.pravatar.cc/80?u=${it.user}`}
-            alt={it.user}
-            className="h-10 w-10 rounded-[12px] object-cover"
-          />
+<div className="h-10 w-10 overflow-hidden rounded-[12px]"><Avatar alt={it.user} /></div>
           <div className="flex-1">
             <p className="text-sm text-white">
               <span className="font-semibold">{it.user}</span> · {it.text}
