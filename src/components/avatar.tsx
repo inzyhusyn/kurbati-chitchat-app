@@ -6,7 +6,7 @@ export function Avatar({
   alt,
   className = "h-full w-full",
 }: {
-  src?: string | null;
+  src?: string | null | undefined;
   alt: string;
   className?: string;
 }) {
