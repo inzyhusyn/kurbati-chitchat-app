@@ -1,3 +1,4 @@
+import { SaveToFolderSheet, SavedCollections, useSavedFolder } from "@/components/saved";
 import { EditProfileScreen } from "@/components/edit-profile";
 import { createFileRoute } from "@tanstack/react-router";
 import { useLike, useFollow } from "@/lib/social";
@@ -337,6 +338,7 @@ function HomeFeed({ onOpenUser }: { onOpenUser: (username: string) => void }) {
         .from("stories")
         .select("id, user_id, author_username, media_url, media_type")
         .gt("expires_at", new Date().toISOString())
+        .gt("created_at", new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString())
         .order("created_at", { ascending: false })
         .limit(100);
       if (error) throw error;
@@ -426,6 +428,7 @@ function HomeFeed({ onOpenUser }: { onOpenUser: (username: string) => void }) {
       {viewerIndex !== null && viewList.length > 0 && (
         <StoryViewer
           stories={viewList}
+          own={viewerIndex === -1}
           startIndex={Math.max(0, viewerIndex)}
           onOpenUser={(u) => {
             setViewerIndex(null);
@@ -445,21 +448,57 @@ function StoryViewer({
   startIndex,
   onClose,
   onOpenUser,
+  own = false,
 }: {
   stories: Story[];
+  own?: boolean;
   startIndex: number;
   onClose: () => void;
   onOpenUser: (username: string) => void;
 }) {
   const [index, setIndex] = useState(startIndex);
+  const [viewersOpen, setViewersOpen] = useState(false);
+  const currentId = stories[index]?.id;
 
   useEffect(() => {
+    if (viewersOpen) return;
     const t = window.setTimeout(() => {
       if (index < stories.length - 1) setIndex(index + 1);
       else onClose();
-    }, 4000);
+    }, 5000);
     return () => window.clearTimeout(t);
-  }, [index, stories.length, onClose]);
+  }, [index, stories.length, onClose, viewersOpen]);
+
+  // Record a view for stories by other people
+  useEffect(() => {
+    if (!currentId || own) return;
+    (async () => {
+      const { data } = await supabase.auth.getUser();
+      if (!data.user) return;
+      await supabase
+        .from("story_views")
+        .upsert({ story_id: String(currentId), viewer_id: data.user.id }, { onConflict: "story_id,viewer_id", ignoreDuplicates: true });
+    })();
+  }, [currentId, own]);
+
+  const { data: viewers = [] } = useQuery({
+    queryKey: ["story-views", currentId],
+    enabled: own && !!currentId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("story_views")
+        .select("viewer_id, viewed_at")
+        .eq("story_id", String(currentId))
+        .order("viewed_at", { ascending: false });
+      if (error) throw error;
+      const ids = data.map((v) => v.viewer_id);
+      const { data: profs } = ids.length
+        ? await supabase.from("profiles").select("id, username, avatar_url").in("id", ids)
+        : { data: [] as { id: string; username: string; avatar_url: string | null }[] };
+      const byId = new Map((profs ?? []).map((p) => [p.id, p]));
+      return data.map((v) => ({ ...v, username: byId.get(v.viewer_id)?.username ?? "user", avatar: byId.get(v.viewer_id)?.avatar_url ?? null }));
+    },
+  });
 
   const story = stories[index];
   if (!story) return null;
@@ -471,10 +510,12 @@ function StoryViewer({
         {stories.map((s, i) => (
           <div key={s.id} className="h-0.5 flex-1 overflow-hidden rounded-full bg-white/30">
             <div
+              key={i === index ? `active-${index}` : s.id}
               className={`h-full bg-white ${i === index ? "story-progress" : ""}`}
               style={{
                 width: i < index ? "100%" : i === index ? undefined : "0%",
-                animationDuration: i === index ? "4s" : undefined,
+                animationDuration: i === index ? "5s" : undefined,
+                animationPlayState: viewersOpen ? "paused" : "running",
               }}
             />
           </div>
@@ -531,6 +572,25 @@ function StoryViewer({
         </button>
       </div>
 
+      {own ? (
+        <div className="border-t border-white/10 px-4 py-3">
+          <button type="button" onClick={() => setViewersOpen((v) => !v)} className="text-sm font-semibold text-white">
+            👁 {viewers.length} {viewers.length === 1 ? "viewer" : "viewers"}
+          </button>
+          {viewersOpen && (
+            <div className="mt-3 max-h-60 overflow-y-auto">
+              {viewers.length === 0 && <p className="text-sm text-white/60">No views yet.</p>}
+              {viewers.map((v) => (
+                <button key={v.viewer_id} type="button" onClick={() => onOpenUser(v.username)} className="flex w-full items-center gap-3 py-2 text-left">
+                  <div className="h-9 w-9 overflow-hidden rounded-[11px]"><Avatar src={v.avatar} alt={v.username} /></div>
+                  <span className="flex-1 text-sm text-white">{v.username}</span>
+                  <span className="text-xs text-white/50">{new Date(v.viewed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="flex items-center gap-3 border-t border-white/10 px-4 py-3">
         <input
           placeholder={`Reply to ${story.name}...`}
@@ -539,6 +599,7 @@ function StoryViewer({
         <Heart className="h-6 w-6 text-white" />
         <Send className="h-6 w-6 text-white" />
       </div>
+      )}
     </div>
   );
 }
@@ -714,7 +775,9 @@ function PostCard({
   const { following, isReady, isPending, setFollowing } = useFollow(post.user);
   const { data: myProfile } = useMyProfile();
   const canFollow = !!myProfile && myProfile.username !== post.user && isReady;
-  const [saved, setSaved] = useState(false);
+  const savedFolder = useSavedFolder(String(post.id));
+  const saved = !!savedFolder;
+  const [saveOpen, setSaveOpen] = useState(false);
   const [popping, setPopping] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
   const [sheet, setSheet] = useState<null | "comments" | "share" | "menu">(null);
@@ -865,8 +928,8 @@ function PostCard({
           </div>
           <button
             type="button"
-            onClick={() => setSaved((v) => !v)}
-            aria-label="Save"
+            onClick={() => setSaveOpen(true)}
+            aria-label={saved ? `Saved to ${savedFolder}` : "Save"}
           >
             <Bookmark
               className={`h-6 w-6 cursor-pointer transition hover:scale-110 ${
@@ -1411,7 +1474,7 @@ function ProfilePage() {
           <p className="col-span-3 py-10 text-center text-sm text-muted-foreground">No posts yet — tap + to share one.</p>
         )}
         {grid === "saved" && (
-          <p className="col-span-3 py-10 text-center text-sm text-muted-foreground">Nothing saved yet.</p>
+          <div className="col-span-3"><SavedCollections /></div>
         )}
         {grid === "posts" && myPosts.map((p) => (
           <div key={p.id} className="h-28 overflow-hidden bg-muted">
