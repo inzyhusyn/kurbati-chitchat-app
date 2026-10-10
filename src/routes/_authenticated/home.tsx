@@ -1,3 +1,4 @@
+import { EditProfileScreen } from "@/components/edit-profile";
 import { createFileRoute } from "@tanstack/react-router";
 import { useLike, useFollow } from "@/lib/social";
 import { useEffect, useRef, useState } from "react";
@@ -1316,6 +1317,7 @@ function ChatThread({ chat, onBack }: { chat: Chat; onBack: () => void }) {
 function ProfilePage() {
   const [grid, setGrid] = useState<"posts" | "saved">("posts");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
   const { data: me } = useMyProfile();
   const username = me?.username ?? "";
   const { data: myPosts = [] } = useQuery({
@@ -1367,8 +1369,14 @@ function ProfilePage() {
         </div>
       </div>
       <h3 className="font-bold">{me?.display_name || username}</h3>
-      <p className="mb-4 text-sm text-foreground/80">{me?.bio}</p>
-      <button className="mb-4 rounded-lg border border-border bg-muted py-2 text-sm font-semibold transition hover:bg-accent">
+      {me?.bio && <p className="whitespace-pre-line text-sm text-foreground/80">{me.bio}</p>}
+      {me?.website && (
+        <a href={me.website} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-primary">
+          {me.website.replace(/^https?:\/\//, "").replace(/\/$/, "")}
+        </a>
+      )}
+      {editOpen && me && <EditProfileScreen profile={me} onClose={() => setEditOpen(false)} />}
+      <button type="button" onClick={() => setEditOpen(true)} className="mb-4 mt-4 rounded-lg border border-border bg-muted py-2 text-sm font-semibold transition hover:bg-accent">
         Edit Profile
       </button>
 
