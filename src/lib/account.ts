@@ -9,6 +9,7 @@ export type Profile = {
   avatar_url: string | null;
   bio: string;
   is_private: boolean;
+  website: string;
 };
 
 function baseUsername(email?: string | null, name?: string | null) {
@@ -23,7 +24,7 @@ export async function ensureProfile(): Promise<Profile> {
   const user = u.user;
   const { data: existing } = await supabase
     .from("profiles")
-    .select("id, username, display_name, avatar_url, bio, is_private")
+    .select("id, username, display_name, avatar_url, bio, is_private, website")
     .eq("id", user.id)
     .maybeSingle();
   if (existing) return existing;
@@ -40,7 +41,7 @@ export async function ensureProfile(): Promise<Profile> {
         display_name: meta['full_name'] || meta['name'] || username,
         avatar_url: meta['avatar_url'] || meta['picture'] || null,
       })
-      .select("id, username, display_name, avatar_url, bio, is_private")
+      .select("id, username, display_name, avatar_url, bio, is_private, website")
       .single();
     if (!error && data) return data;
     if (error && error.code !== "23505") throw error;
