@@ -18,8 +18,8 @@ export function EditProfileScreen({ profile, onClose }: { profile: Profile; onCl
 
   const pick = (f?: File) => {
     if (!f) return;
-    if (!f.type.startsWith("image/")) return toast.error("Please choose an image");
-    if (f.size > 10 * 1024 * 1024) return toast.error("Image must be under 10MB");
+    if (!f.type.startsWith("image/")) { toast.error("Please choose an image"); return; }
+    if (f.size > 10 * 1024 * 1024) { toast.error("Image must be under 10MB"); return; }
     setFile(f);
     setPreview(URL.createObjectURL(f));
   };
@@ -28,7 +28,7 @@ export function EditProfileScreen({ profile, onClose }: { profile: Profile; onCl
     let site = website.trim();
     if (site && !/^https?:\/\//i.test(site)) site = `https://${site}`;
     if (site) {
-      try { new URL(site); } catch { return toast.error("Website link looks invalid"); }
+      try { new URL(site); } catch { toast.error("Website link looks invalid"); return; }
     }
     setSaving(true);
     try {
