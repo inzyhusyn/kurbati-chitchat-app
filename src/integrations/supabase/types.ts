@@ -124,6 +124,7 @@ export type Database = {
           is_private: boolean
           settings: Json
           username: string
+          website: string
         }
         Insert: {
           avatar_url?: string | null
@@ -135,6 +136,7 @@ export type Database = {
           is_private?: boolean
           settings?: Json
           username: string
+          website?: string
         }
         Update: {
           avatar_url?: string | null
@@ -146,6 +148,7 @@ export type Database = {
           is_private?: boolean
           settings?: Json
           username?: string
+          website?: string
         }
         Relationships: []
       }
