@@ -1,0 +1,2 @@
+ALTER TABLE public.posts ADD COLUMN IF NOT EXISTS is_archived boolean NOT NULL DEFAULT false;
+CREATE POLICY "Archived posts visible only to owner" ON public.posts AS RESTRICTIVE FOR SELECT TO anon, authenticated USING (NOT is_archived OR auth.uid() = user_id);
