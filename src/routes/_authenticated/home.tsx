@@ -1099,30 +1099,66 @@ function PostCard({
 }
 
 function CommentsSheet({
-  comments,
-  onAdd,
+  postId,
   onClose,
   onOpenUser,
 }: {
-  comments: Comment[];
-  onAdd: (text: string) => void;
+  postId: string;
   onClose: () => void;
   onOpenUser: (username: string) => void;
 }) {
   const [value, setValue] = useState("");
+  const [editing, setEditing] = useState<Comment | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: myProfile } = useMyProfile();
+  const { data: comments = [], isLoading } = useComments(postId);
 
-  const submit = (e: React.FormEvent) => {
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = value.trim();
-    if (!text) return;
-    onAdd(text);
+    if (!text || !myProfile || busy) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("comments")
+      .insert({ post_id: postId, user_id: myProfile.id, content: text });
+    setBusy(false);
+    if (error) return;
     setValue("");
+    await refresh();
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = editValue.trim();
+    if (!text || !editing || busy) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("comments")
+      .update({ content: text, updated_at: new Date().toISOString() })
+      .eq("id", editing.id);
+    setBusy(false);
+    if (error) return;
+    setEditing(null);
+    await refresh();
   };
 
   return (
     <BottomSheet title="Comments" onClose={onClose}>
       <div className="flex flex-col">
         <div className="flex-1 px-4 py-2">
+          {isLoading && (
+            <p className="py-8 text-center text-sm text-muted-foreground">Loading comments…</p>
+          )}
+          {!isLoading && comments.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No comments yet. Be the first to comment.
+            </p>
+          )}
           {comments.map((c) => (
             <div key={c.id} className="flex gap-3 py-3">
               <button
@@ -1131,24 +1167,64 @@ function CommentsSheet({
                 onClick={() => onOpenUser(c.user)}
                 className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-[10px] bg-muted"
               >
-                <Avatar alt={c.user} />
+                <Avatar src={c.avatar} alt={c.user} />
               </button>
-              <div className="leading-snug">
-                <p className="text-sm">
-                  <button
-                    type="button"
-                    onClick={() => onOpenUser(c.user)}
-                    className="mr-2 font-semibold hover:underline"
-                  >
-                    {c.user}
-                  </button>
-                  {c.text}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {c.time} · Reply
-                </p>
+              <div className="min-w-0 flex-1 leading-snug">
+                {editing?.id === c.id ? (
+                  <form onSubmit={saveEdit} className="flex items-center gap-2">
+                    <input
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      aria-label="Edit comment"
+                      autoFocus
+                      className="flex-1 rounded-full border border-border bg-muted px-3 py-1.5 text-sm outline-none focus:border-primary"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!editValue.trim() || busy}
+                      className="text-xs font-semibold text-primary disabled:opacity-40"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(null)}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <p className="text-sm">
+                      <button
+                        type="button"
+                        onClick={() => onOpenUser(c.user)}
+                        className="mr-2 font-semibold hover:underline"
+                      >
+                        {c.user}
+                      </button>
+                      {c.text}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {c.time}
+                      {c.edited && " · Edited"}
+                      {c.mine && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(c);
+                            setEditValue(c.text);
+                          }}
+                          className="ml-2 font-semibold hover:text-foreground"
+                        >
+                          · Edit
+                        </button>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
-              <Heart className="ml-auto h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </div>
           ))}
         </div>
@@ -1165,7 +1241,7 @@ function CommentsSheet({
           />
           <button
             type="submit"
-            disabled={!value.trim()}
+            disabled={!value.trim() || busy}
             className="text-sm font-semibold text-primary disabled:opacity-40"
           >
             Post
