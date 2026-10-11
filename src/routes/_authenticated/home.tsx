@@ -761,7 +761,57 @@ function HomeFeedPosts({
   );
 }
 
-type Comment = { id: number; user: string; text: string; time: string };
+type Comment = {
+  id: string;
+  user: string;
+  avatar: string | null;
+  text: string;
+  time: string;
+  mine: boolean;
+  edited: boolean;
+};
+
+function timeAgo(iso: string) {
+  const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return `${Math.floor(d / 7)}w`;
+}
+
+function useComments(postId: string) {
+  const { data: myProfile } = useMyProfile();
+  return useQuery({
+    queryKey: ["comments", postId],
+    queryFn: async (): Promise<Comment[]> => {
+      const { data, error } = await supabase
+        .from("comments")
+        .select("id, user_id, content, created_at, updated_at")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const ids = [...new Set(data.map((c) => c.user_id))];
+      const { data: profs } = ids.length
+        ? await supabase.from("profiles").select("id, username, avatar_url").in("id", ids)
+        : { data: [] as { id: string; username: string; avatar_url: string | null }[] };
+      const byId = new Map((profs ?? []).map((p) => [p.id, p]));
+      return data.map((c) => ({
+        id: c.id,
+        user: byId.get(c.user_id)?.username ?? "user",
+        avatar: byId.get(c.user_id)?.avatar_url ?? null,
+        text: c.content,
+        time: timeAgo(c.created_at),
+        mine: c.user_id === myProfile?.id,
+        edited: c.updated_at !== c.created_at,
+      }));
+    },
+    enabled: !!myProfile,
+  });
+}
 
 function PostCard({
   post,
