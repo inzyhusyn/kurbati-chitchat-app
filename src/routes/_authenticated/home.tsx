@@ -1049,6 +1049,7 @@ function PostCard({
       )}
 
       {toast && <Toast message={toast} />}
+      {saveOpen && <SaveToFolderSheet postId={String(post.id)} onClose={() => setSaveOpen(false)} onDone={flash} />}
     </article>
   );
 }
