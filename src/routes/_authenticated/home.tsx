@@ -761,7 +761,57 @@ function HomeFeedPosts({
   );
 }
 
-type Comment = { id: number; user: string; text: string; time: string };
+type Comment = {
+  id: string;
+  user: string;
+  avatar: string | null;
+  text: string;
+  time: string;
+  mine: boolean;
+  edited: boolean;
+};
+
+function timeAgo(iso: string) {
+  const s = Math.max(1, Math.floor((Date.now() - new Date(iso).getTime()) / 1000));
+  if (s < 60) return `${s}s`;
+  const m = Math.floor(s / 60);
+  if (m < 60) return `${m}m`;
+  const h = Math.floor(m / 60);
+  if (h < 24) return `${h}h`;
+  const d = Math.floor(h / 24);
+  if (d < 7) return `${d}d`;
+  return `${Math.floor(d / 7)}w`;
+}
+
+function useComments(postId: string) {
+  const { data: myProfile } = useMyProfile();
+  return useQuery({
+    queryKey: ["comments", postId],
+    queryFn: async (): Promise<Comment[]> => {
+      const { data, error } = await supabase
+        .from("comments")
+        .select("id, user_id, content, created_at, updated_at")
+        .eq("post_id", postId)
+        .order("created_at", { ascending: true });
+      if (error) throw error;
+      const ids = [...new Set(data.map((c) => c.user_id))];
+      const { data: profs } = ids.length
+        ? await supabase.from("profiles").select("id, username, avatar_url").in("id", ids)
+        : { data: [] as { id: string; username: string; avatar_url: string | null }[] };
+      const byId = new Map((profs ?? []).map((p) => [p.id, p]));
+      return data.map((c) => ({
+        id: c.id,
+        user: byId.get(c.user_id)?.username ?? "user",
+        avatar: byId.get(c.user_id)?.avatar_url ?? null,
+        text: c.content,
+        time: timeAgo(c.created_at),
+        mine: c.user_id === myProfile?.id,
+        edited: c.updated_at !== c.created_at,
+      }));
+    },
+    enabled: !!myProfile,
+  });
+}
 
 function PostCard({
   post,
@@ -781,7 +831,7 @@ function PostCard({
   const [popping, setPopping] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
   const [sheet, setSheet] = useState<null | "comments" | "share" | "menu">(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const { data: comments = [] } = useComments(String(post.id));
   const [toast, setToast] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
@@ -964,17 +1014,11 @@ function PostCard({
 
       {sheet === "comments" && (
         <CommentsSheet
-          comments={comments}
+          postId={String(post.id)}
           onOpenUser={(u) => {
             setSheet(null);
             onOpenUser(u);
           }}
-          onAdd={(text) =>
-            setComments((c) => [
-              ...c,
-              { id: Date.now(), user: "you", text, time: "now" },
-            ])
-          }
           onClose={() => setSheet(null)}
         />
       )}
@@ -1055,30 +1099,66 @@ function PostCard({
 }
 
 function CommentsSheet({
-  comments,
-  onAdd,
+  postId,
   onClose,
   onOpenUser,
 }: {
-  comments: Comment[];
-  onAdd: (text: string) => void;
+  postId: string;
   onClose: () => void;
   onOpenUser: (username: string) => void;
 }) {
   const [value, setValue] = useState("");
+  const [editing, setEditing] = useState<Comment | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [busy, setBusy] = useState(false);
+  const queryClient = useQueryClient();
+  const { data: myProfile } = useMyProfile();
+  const { data: comments = [], isLoading } = useComments(postId);
 
-  const submit = (e: React.FormEvent) => {
+  const refresh = () =>
+    queryClient.invalidateQueries({ queryKey: ["comments", postId] });
+
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     const text = value.trim();
-    if (!text) return;
-    onAdd(text);
+    if (!text || !myProfile || busy) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("comments")
+      .insert({ post_id: postId, user_id: myProfile.id, content: text });
+    setBusy(false);
+    if (error) return;
     setValue("");
+    await refresh();
+  };
+
+  const saveEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const text = editValue.trim();
+    if (!text || !editing || busy) return;
+    setBusy(true);
+    const { error } = await supabase
+      .from("comments")
+      .update({ content: text, updated_at: new Date().toISOString() })
+      .eq("id", editing.id);
+    setBusy(false);
+    if (error) return;
+    setEditing(null);
+    await refresh();
   };
 
   return (
     <BottomSheet title="Comments" onClose={onClose}>
       <div className="flex flex-col">
         <div className="flex-1 px-4 py-2">
+          {isLoading && (
+            <p className="py-8 text-center text-sm text-muted-foreground">Loading comments…</p>
+          )}
+          {!isLoading && comments.length === 0 && (
+            <p className="py-8 text-center text-sm text-muted-foreground">
+              No comments yet. Be the first to comment.
+            </p>
+          )}
           {comments.map((c) => (
             <div key={c.id} className="flex gap-3 py-3">
               <button
@@ -1087,24 +1167,64 @@ function CommentsSheet({
                 onClick={() => onOpenUser(c.user)}
                 className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-[10px] bg-muted"
               >
-                <Avatar alt={c.user} />
+                <Avatar src={c.avatar} alt={c.user} />
               </button>
-              <div className="leading-snug">
-                <p className="text-sm">
-                  <button
-                    type="button"
-                    onClick={() => onOpenUser(c.user)}
-                    className="mr-2 font-semibold hover:underline"
-                  >
-                    {c.user}
-                  </button>
-                  {c.text}
-                </p>
-                <p className="mt-0.5 text-xs text-muted-foreground">
-                  {c.time} · Reply
-                </p>
+              <div className="min-w-0 flex-1 leading-snug">
+                {editing?.id === c.id ? (
+                  <form onSubmit={saveEdit} className="flex items-center gap-2">
+                    <input
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      aria-label="Edit comment"
+                      autoFocus
+                      className="flex-1 rounded-full border border-border bg-muted px-3 py-1.5 text-sm outline-none focus:border-primary"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!editValue.trim() || busy}
+                      className="text-xs font-semibold text-primary disabled:opacity-40"
+                    >
+                      Save
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditing(null)}
+                      className="text-xs text-muted-foreground"
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <p className="text-sm">
+                      <button
+                        type="button"
+                        onClick={() => onOpenUser(c.user)}
+                        className="mr-2 font-semibold hover:underline"
+                      >
+                        {c.user}
+                      </button>
+                      {c.text}
+                    </p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      {c.time}
+                      {c.edited && " · Edited"}
+                      {c.mine && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditing(c);
+                            setEditValue(c.text);
+                          }}
+                          className="ml-2 font-semibold hover:text-foreground"
+                        >
+                          · Edit
+                        </button>
+                      )}
+                    </p>
+                  </>
+                )}
               </div>
-              <Heart className="ml-auto h-4 w-4 flex-shrink-0 text-muted-foreground" />
             </div>
           ))}
         </div>
@@ -1121,7 +1241,7 @@ function CommentsSheet({
           />
           <button
             type="submit"
-            disabled={!value.trim()}
+            disabled={!value.trim() || busy}
             className="text-sm font-semibold text-primary disabled:opacity-40"
           >
             Post
