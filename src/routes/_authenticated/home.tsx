@@ -1014,17 +1014,11 @@ function PostCard({
 
       {sheet === "comments" && (
         <CommentsSheet
-          comments={comments}
+          postId={String(post.id)}
           onOpenUser={(u) => {
             setSheet(null);
             onOpenUser(u);
           }}
-          onAdd={(text) =>
-            setComments((c) => [
-              ...c,
-              { id: Date.now(), user: "you", text, time: "now" },
-            ])
-          }
           onClose={() => setSheet(null)}
         />
       )}
