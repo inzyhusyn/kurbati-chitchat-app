@@ -96,6 +96,7 @@ export type Database = {
           filter: string
           hide_counts: boolean
           id: string
+          is_archived: boolean
           location: string | null
           media_type: string
           media_url: string
@@ -116,6 +117,7 @@ export type Database = {
           filter?: string
           hide_counts?: boolean
           id?: string
+          is_archived?: boolean
           location?: string | null
           media_type?: string
           media_url: string
@@ -136,6 +138,7 @@ export type Database = {
           filter?: string
           hide_counts?: boolean
           id?: string
+          is_archived?: boolean
           location?: string | null
           media_type?: string
           media_url?: string
