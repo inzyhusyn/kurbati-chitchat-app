@@ -831,7 +831,7 @@ function PostCard({
   const [popping, setPopping] = useState(false);
   const [burstKey, setBurstKey] = useState(0);
   const [sheet, setSheet] = useState<null | "comments" | "share" | "menu">(null);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const { data: comments = [] } = useComments(String(post.id));
   const [toast, setToast] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
 
